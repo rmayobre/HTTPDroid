@@ -22,3 +22,7 @@ In this stage, the library will focus on adding security features.
   * Database encryption
 ## Stable release
 The library will have all listed functions fully supported, as well as any features added later in development.
+### Features to be released after a stable build:
+* FTP (File Transfer Protocol)
+* SSH (Secure Shell)
+* *Possibly more...*
