@@ -15,48 +15,68 @@ import java.util.Base64;
  */
 public class WebSocket implements FrameData
 {
+	/**
+	 * Required to create a magic string and shake hands with client.
+	 */
 	private final String MAGIC_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 	
-	private final Socket SOCKET;
+	/**
+	 * Socket connection from client.
+	 */
+	private final Socket CLIENT;
 	
+	/**
+	 * InputStream received from client.
+	 */
 	private final InputStream IN;
 	
+	/**
+	 * Outputstream sent by server.
+	 */
 	private final OutputStream OUT;
 	
+	/**
+	 * Determines if handshake was performed with client.
+	 */
 	private boolean HANDSHAKE;
 	
+	/**
+	 * Determines if WebSocket is closed.
+	 */
 	private boolean CLOSED;
 	
 	/**
-	 * 
+	 * Default constructor.
 	 * @param socket
 	 * @throws IOException
 	 */
-	WebSocket(final Socket socket) throws IOException
+	WebSocket(final Socket client) throws IOException
 	{
-		this.SOCKET = socket;
-		this.IN = SOCKET.getInputStream();
-		this.OUT = SOCKET.getOutputStream();
+		this.CLIENT = client;
+		this.IN = CLIENT.getInputStream();
+		this.OUT = CLIENT.getOutputStream();
 		this.HANDSHAKE = false;
 		this.CLOSED = false;
 	}
 	
 	/**
 	 * 
-	 * @param frame
-	 * @throws InvalidFrameException
+	 * @param frame - You CANNOT send a {@link Frame} class in this method.
+	 * Valid classes to place in parameters: {@link TextFrame}, 
+	 * {@link BinaryFrame}, {@link CloseFrame}, {@link PongFrame}.
+	 * @throws InvalidFrameException Will be thrown if frame is a {@link PingFrame}.
 	 * @throws WebSocketException 
 	 * @throws IOException 
 	 * @see {@link #sendData(Frame)}
 	 * @see {@link #sendControl(Frame)}
 	 */
-	public void send(Frame frame) throws InvalidFrameException, WebSocketException, IOException
+	public void send(Frame frame) throws InvalidFrameException, WebSocketException
 	{
 		if(this.CLOSED)
 			throw new WebSocketException("Client side socket is closed.");
 		else if(!this.HANDSHAKE)
 		{
-			sendClose(new CloseFrame(CloseFrame.NEVER_CONNECTED));
+//			sendClose(new CloseFrame(CloseFrame.NEVER_CONNECTED));
 			throw new WebSocketException("Handshake was never established.");
 		}
 		else
@@ -64,28 +84,109 @@ public class WebSocket implements FrameData
 			if(frame.isControlFrame())
 				sendControl((ControlFrame) frame);
 			else if (frame.isDataFrame())
-				sendData((DataFrame) frame);
+			{
+				try 
+				{
+					sendData((DataFrame) frame);
+				} 
+				catch (IOException e) 
+				{
+					throw new WebSocketException("Connection error", e);
+				}
+			}
 			else
-				throw new InvalidFrameException("Unknown frame type.");
+				throw new InvalidFrameException("Must send a valid frame.");
 		}
 	}
 	
 	/**
-	 * 
-	 * @param frame
+	 * Sends a {@link DataFrame} to client.
+	 * @param frame - data frame to be sent to client.
+	 * @throws IOException Thrown by {@link OutputStream}
 	 */
-	private void sendData(DataFrame frame)
+	private void sendData(DataFrame frame) throws IOException
 	{
+		OUT.write(129);
 		
+		if(frame.getData().length <= 125)
+		{
+			OUT.write(frame.getData().length);
+			OUT.write(frame.getData());
+		}
+		else if(frame.getData().length < Math.pow(2.0D, 16.0D))
+		{
+			OUT.write(TWO_BYTE_FRAME);
+			byte[] lenBytes = this.toByteArray(Short.valueOf((short) frame.getData().length));
+			OUT.write(lenBytes);
+			OUT.write(frame.getData());
+		}
+		else
+		{
+			OUT.write(EIGHT_BYTE_FRAME);
+			byte[] lenBytes = this.toByteArray(Long.valueOf(frame.getData().length));
+			OUT.write(lenBytes);
+			OUT.write(frame.getData());
+		}
+	}
+	
+	/**
+	 * Takes in a number (Long or short) and creates a byte array.
+	 * @param data - {@link Number}
+	 * @return byte array.
+	 */
+	private byte[] toByteArray(Number data)
+	{
+		Class<? extends Number> dataType = data.getClass();
+		
+		long value;
+		int length;
+		if(Byte.class == dataType)
+		{
+			length = 1;
+			value = ((Byte)data).byteValue();
+		}
+		else
+		{
+			if(Short.class == dataType)
+			{
+				length = 2;
+				value = ((Short)data).shortValue();
+			}
+			else
+			{
+				if(Integer.class == dataType)
+				{
+					length = 4;
+					value = ((Integer)data).intValue();
+				}
+				else
+				{
+					if(Long.class == dataType)
+					{
+						length = 8;
+						value = ((Long)data).longValue();
+					}
+					else
+						throw new IllegalArgumentException("Parameter must be one of the following types:\n Byte, Short, Integer, Long");
+				}
+			}
+		}
+		
+		byte[] byteArray = new byte[length];
+		
+		for (int i = 0; i < length; i++) 
+			byteArray[i] = ((byte)(int)(value >> 8 * (length - i - 1) & 0xFF));
+		
+		return byteArray;
 	}
 	
 	/**
 	 * Sends a {@link ControlFrame} to client.
 	 * @param frame {@link ControlFrame}
 	 * @throws InvalidFrameException Thrown if {@link PingFrame} because the server should never throw a ping to client.
-	 * @throws IOException Thrown from {@link CloseFrame} or {@link PongFrame}
+	 * @throws WebSocketException Thrown from {@link CloseFrame}.
 	 */
-	private void sendControl(ControlFrame frame) throws InvalidFrameException, IOException
+	private void sendControl(ControlFrame frame) throws InvalidFrameException, WebSocketException
 	{
 		if(frame instanceof CloseFrame)
 			sendClose((CloseFrame)frame);
@@ -108,16 +209,24 @@ public class WebSocket implements FrameData
 	/**
 	 * Sends a {@link CloseFrame} to client containing a status code.
 	 * @param frame - MUST be a {@link CloseFrame} for this function to work!
-	 * @throws IOException Thrown by {@link OuputStream} if stream is closed or corrupted.
+	 * @throws WebSocketException Thrown by {@link OuputStream} because of an 
+	 * {@link IOException} if stream is closed or corrupted.
 	 */
-	private void sendClose(CloseFrame frame) throws IOException
+	private void sendClose(CloseFrame frame) throws WebSocketException
 	{
-		OUT.write(new byte[]
+		try 
 		{
-			(byte) OpCode.CLOSE.getCode(), (byte) 0x02,
-            (byte) ((frame.getStatus() & MASK_LOW_WORD_HIGH_BYTE) >> OCTET_ONE),
-            (byte) (frame.getStatus() & MASK_LOW_WORD_LOW_BYTE)
-        });
+			OUT.write(new byte[]
+			{
+				(byte) OpCode.CLOSE.getCode(), (byte) 0x02,
+			    (byte) ((frame.getStatus() & MASK_LOW_WORD_HIGH_BYTE) >> OCTET_ONE),
+			    (byte) (frame.getStatus() & MASK_LOW_WORD_LOW_BYTE)
+			});
+		}
+		catch (IOException e) 
+		{
+			throw new WebSocketException ("Connection error", e);
+		}
 	}
 	
 	/**
@@ -144,7 +253,7 @@ public class WebSocket implements FrameData
 	}
 	
 	/**
-	 * TODO change up to return the frame type.
+	 * TODO change up to return an extension of Frame class.
 	 * Builds a {@link Frame} or a link of {@link Frame}s, depending on size of data being streamed.
 	 * @param current - {@link Frame} being built. Uses recursion to build extending {@link Frame}s if needed.
 	 * @return {@link Frame}
@@ -252,9 +361,9 @@ public class WebSocket implements FrameData
 	{
 		MessageDigest message = MessageDigest.getInstance("SHA-1");
 		
-		String text = key + MAGIC_KEY;
+		String magic_string = key + MAGIC_KEY;
 		
-		message.update(text.getBytes(), 0, text.length());
+		message.update(magic_string.getBytes(), 0, magic_string.length());
 		
 		return Base64.getEncoder().encodeToString(message.digest());
 	}
@@ -271,9 +380,9 @@ public class WebSocket implements FrameData
 	/**
 	 * Normal disconnection from client. This sends the client a {@link CloseFrame}
 	 * containing a {@link CloseFrame#NORMAL} status code.
-	 * @throws IOException Sent from {@link #sendClose(CloseFrame)}
+	 * @throws WebSocketException Sent from {@link #sendClose(CloseFrame)}
 	 */
-	public void disconnect() throws IOException
+	public void disconnect() throws WebSocketException
 	{
 		sendClose(new CloseFrame());
 		close();
@@ -285,10 +394,11 @@ public class WebSocket implements FrameData
 	 * 
 	 * @param status - Status code to be placed inside of {@link CloseFrame}
 	 * @throws IOException 
+	 * @throws WebSocketException 
 	 * @see {@link CloseFrame}
 	 * @see <a href="https://tools.ietf.org/html/rfc6455#section-1.4">RFC 6455, Section 1.4 (Closing Handshake)</a>
 	 */
-	public void disconnect(int status) throws IOException
+	public void disconnect(int status) throws WebSocketException
 	{
 		sendClose(new CloseFrame(status));
 		close();
@@ -303,13 +413,22 @@ public class WebSocket implements FrameData
 	 * <p>
 	 * Closes {@link Socket} connection from client, as well as {@link InputStream}
 	 * and {@link OutputStream} of data from client.
+	 * 
+	 * @throws WebSocketException Could not properly close socket or streams from client connection.
 	 */
-    private final synchronized void close() throws IOException 
+    private final synchronized void close() throws WebSocketException
     {
-        this.SOCKET.close();
-        this.IN.close();
-        this.OUT.close();
-        this.CLOSED = true;
+        try 
+        {
+        	this.CLOSED = true;
+            this.CLIENT.close();
+            this.IN.close();
+			this.OUT.close();
+		} 
+        catch (IOException e) 
+        {
+			throw new WebSocketException("Connection error", e);
+		}
     }
     
     /**
@@ -321,3 +440,4 @@ public class WebSocket implements FrameData
 		return this.CLOSED;
 	}
 }
+

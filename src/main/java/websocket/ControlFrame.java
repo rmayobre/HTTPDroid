@@ -7,6 +7,7 @@ package websocket;
  */
 public abstract class ControlFrame extends Frame
 {	
+	private byte[] DATA;
 	/**
 	 * 
 	 * @param opcode

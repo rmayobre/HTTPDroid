@@ -3,9 +3,9 @@ package websocket;
 public class PongFrame extends ControlFrame
 {
 
-	PongFrame(OpCode opcode)
+	PongFrame(PingFrame ping)
 	{
-		super(opcode);
+		super(OpCode.PONG);
 	}
 
 }

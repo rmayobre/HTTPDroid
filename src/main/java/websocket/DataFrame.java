@@ -1,21 +1,21 @@
 package websocket;
 
 /**
- * TODO javadoc this.
+ * A class structure of a WebSocket data frame.
  * @author Ryan Mayobre
- *
+ * @see {@link Frame}
  */
 public abstract class DataFrame extends Frame
 {
 	/**
-	 * 
+	 * Message to be sent to client in byte.
 	 */
 	private final byte[] DATA;
 	
 	/**
-	 * 
-	 * @param opcode
-	 * @param data
+	 * Default constructor.
+	 * @param opcode - {@link OpCode}
+	 * @param data - message represented as byte array.
 	 */
 	public DataFrame(OpCode opcode, byte[] data) 
 	{
@@ -24,8 +24,7 @@ public abstract class DataFrame extends Frame
 	}
 	
 	/**
-	 * 
-	 * @return
+	 * @return {@link #DATA}
 	 */
 	public byte[] getData()
 	{
