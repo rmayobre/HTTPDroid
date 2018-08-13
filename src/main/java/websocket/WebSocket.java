@@ -9,7 +9,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 /**
- * TODO javadoc this
+ * This class creates the WebSocket protocols presented
+ * in the RFC 6455 guidelines. A WebSocket must be created
+ * for each session created when a client connects to the 
+ * server.
  * @author Ryan Mayobre
  *
  */
@@ -190,8 +193,8 @@ public class WebSocket implements FrameData
 	{
 		if(frame instanceof CloseFrame)
 			sendClose((CloseFrame)frame);
-		else if(frame instanceof PongFrame)
-			sendPong((PongFrame)frame);
+//		else if(frame instanceof PongFrame)
+//			sendPong((PongFrame)frame);
 		else
 			throw new InvalidFrameException("Server cannot send Ping frames to client.");
 	}
@@ -201,6 +204,7 @@ public class WebSocket implements FrameData
 	 * Sends a pong response to client.
 	 * @param frame {@link PongFrame}
 	 */
+	@Deprecated
 	private void sendPong(PongFrame frame)
 	{
 		
@@ -262,11 +266,6 @@ public class WebSocket implements FrameData
 	 */
 	private Frame build(Frame current) throws InvalidFrameException, IOException
 	{
-		/*
-		 * There are two valid sizes to a payload.
-		 * If the size does not match the provided 
-		 * byte size, throw exception.
-		 */
 		if(current.PAYLOAD_LENGTH == PAYLOAD_LENGTH_16)
 		{
 			current.PAYLOAD_LENGTH = 0;
@@ -285,25 +284,17 @@ public class WebSocket implements FrameData
 			for(int i = 0; i < payload.length; i++)
 				current.PAYLOAD_LENGTH = (current.PAYLOAD_LENGTH << 8) + (payload[i] & 0xFF);
 		}
-		/*
-		 * Check for proper masking.
-		 */
+		
 		byte[] maskingKey = new byte[MASK_BYTES];
-		/*
-		 * Check if client sent a masked frame.
-		 */
+		
 		if(current.getMask())
 			IN.read(maskingKey);
 		else
 			throw new InvalidFrameException("Client did not send a masked frame.");
-		/*
-		 * Gather payload data.
-		 */
+		
 		byte[] payload = new byte[current.PAYLOAD_LENGTH];
 		IN.read(payload);
-		/*
-		 * Check again if masked.
-		 */
+		
 		if(current.getMask())
 			for(int i = 0; i < current.PAYLOAD_LENGTH; i++)
 				current.getPayload().write((char)(payload[i] ^ maskingKey[(i % 4)]));

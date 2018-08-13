@@ -3,21 +3,22 @@ package websocket;
 import java.io.UnsupportedEncodingException;
 
 /**
- * TODO javadoc this.
+ * Class structure for a Text frame.
  * @author Ryan Mayobre
  *
  */
 public class TextFrame extends DataFrame
 {
 	/**
-	 * 
+	 * Message inside text frame.
 	 */
 	private final String MESSAGE;
 	
 	/**
-	 * 
-	 * @param message
-	 * @throws UnsupportedEncodingException
+	 * Default constructor.
+	 * @param message - message to be placed inside frame.
+	 * @throws UnsupportedEncodingException Thrown if message 
+	 * does not support UTF-8 encoding.
 	 */
 	public TextFrame(String message) throws UnsupportedEncodingException 
 	{
@@ -26,8 +27,7 @@ public class TextFrame extends DataFrame
 	}
 	
 	/**
-	 * 
-	 * @return
+	 * @return {@link #MESSAGE}
 	 */
 	public String getMessage()
 	{

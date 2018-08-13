@@ -1,9 +1,8 @@
 package websocket;
 
 /**
- * 
+ * Class structor for a Close frame.
  * @author Ryan Mayobre
- *
  */
 public class CloseFrame extends ControlFrame
 {
@@ -156,12 +155,19 @@ public class CloseFrame extends ControlFrame
 		this.STATUS = NORMAL;
 	}
 	
+	/**
+	 * Constructor for a custom status for the closing reason.
+	 * @param status - code for status.
+	 */
 	CloseFrame(int status)
 	{
 		super(OpCode.CLOSE);
 		this.STATUS = status;
 	}
 	
+	/**
+	 * @return {@link #STATUS}
+	 */
 	public int getStatus()
 	{
 		return STATUS;
