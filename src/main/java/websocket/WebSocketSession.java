@@ -72,7 +72,7 @@ public class WebSocketSession implements Runnable, Closeable
 			}
 			
 		}
-	}
+	} 
 	
 	/**
 	 * Send string message to client.
