@@ -4,9 +4,15 @@ A lightweight HTTP daemon that runs WebSocket protocol. This library is designed
 # Current Status: *pre-alpha*
 This project is not yet finished and major functions of this project are not yet properly implemented.
 
+# What is currently being worked on?
+Right now I am working on the WebSocket interface, and stablizing the overall library.
+
 # Road Map
 ## Alpha
 At this point the project will have basic functions working, and focus on debugging for stability.
+### ETA on Alpha 0.0.1?
+I want to get this project rolling by the end of August 2018.
+**NOTE:** I will also be developing a chrome extension to demonstrate/test this library's functionality.
 ### Features to be included:
 * HTTP requests
 * WebSocket interface
@@ -14,6 +20,10 @@ At this point the project will have basic functions working, and focus on debugg
 * Easy to use callback interface to handle WebSocket responses.
 ## Beta
 In this stage, the library will focus on adding security features.
+### ETA on Beta 0.1.0?
+My current plan is to have this project in beta stage around December.
+**NOTE:** I will also be developing an android app running this library as its main core. 
+The app will be **FREE** and **open sourced**.
 ### Features to be included:
 * SQLCipher *Android edition* implementation
 * Authentication System
