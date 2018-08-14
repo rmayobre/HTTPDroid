@@ -63,6 +63,7 @@ public class WebSocketSession implements Runnable, Closeable
 			try 
 			{
 				Frame frame = CLIENT.read();
+				
 			} 
 			catch (InvalidFrameException | WebSocketException e) 
 			{
