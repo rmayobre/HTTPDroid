@@ -4,7 +4,6 @@ import java.net.ServerSocket;
 import websocket.CloseFrame;
 import websocket.DataFrame;
 import websocket.WebSocketListener;
-import websocket.WebSocketServer;
 import websocket.WebSocketSession;
 
 /**
