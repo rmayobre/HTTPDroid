@@ -265,7 +265,7 @@ public class WebSocket implements FrameData
 	 * @throws IOException Thrown if stream of data is broken or corrupted.
 	 */
 	private Frame build(Frame current) throws InvalidFrameException, IOException
-	{ 
+	{  
 		if(current.PAYLOAD_LENGTH == PAYLOAD_LENGTH_16)
 		{
 			current.PAYLOAD_LENGTH = 0;

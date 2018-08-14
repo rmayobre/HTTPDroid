@@ -61,7 +61,7 @@ public class WebSocketSession implements Runnable, Closeable
 		while(!CLIENT.isClosed())
 		{
 			try 
-			{
+			{ 
 				Frame frame = CLIENT.read();
 				
 			} 
