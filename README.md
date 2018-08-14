@@ -23,7 +23,7 @@ In this stage, the library will focus on adding security features.
 ### ETA on Beta 0.1.0?
 My current plan is to have this project in beta stage around December.
 **NOTE:** I will also be developing an android app running this library as its main core. 
-The app will be **FREE** and **opened sourced**.
+The app will be **FREE** and **open sourced**.
 ### Features to be included:
 * SQLCipher *Android edition* implementation
 * Authentication System
