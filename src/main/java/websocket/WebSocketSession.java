@@ -1,15 +1,9 @@
 package websocket;
 
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 
 /**
  * TODO Javadoc WebSocketSession
@@ -67,6 +61,51 @@ public class WebSocketSession implements Runnable, Closeable
 		{
 			
 		}
+	}
+	
+	/**
+	 * 
+	 * @param message
+	 */
+	public void send(String message)
+	{
+		try 
+		{
+			CLIENT.send(new TextFrame(message));
+		} 
+		catch (UnsupportedEncodingException 
+				| InvalidFrameException 
+				| WebSocketException e) 
+		{
+			// TODO Log this.
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 
+	 * @param data
+	 */
+	public void send(byte[] data)
+	{
+		try 
+		{
+			CLIENT.send(new BinaryFrame(data));
+		}
+		catch (InvalidFrameException | WebSocketException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 
+	 * @param status
+	 */
+	public void send(int status)
+	{
+		
 	}
 
 	/**
