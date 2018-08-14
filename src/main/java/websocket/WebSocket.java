@@ -409,17 +409,17 @@ public class WebSocket implements FrameData
 	 */
     private final synchronized void close() throws WebSocketException
     {
-        try 
-        {
-        	this.CLOSED = true;
-            this.CLIENT.close();
-            this.IN.close();
-			this.OUT.close();
-		} 
-        catch (IOException e) 
-        {
-			throw new WebSocketException("Connection error", e);
-		}
+    	try
+    	{
+    		this.CLOSED = true;
+    		this.CLIENT.close();
+    		this.IN.close();
+    		this.OUT.close();
+    	}
+    	catch (IOException e)
+    	{
+    		throw new WebSocketException("Connection error", e);
+    	}
     }
     
     /**

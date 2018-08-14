@@ -6,7 +6,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 
 /**
- * TODO Javadoc WebSocketSession
+ * TODO Review all try-catch's and determine how to properly handle them.
+ * 
  * @author Ryan Mayobre
  *
  */
@@ -59,12 +60,21 @@ public class WebSocketSession implements Runnable, Closeable
 		
 		while(!CLIENT.isClosed())
 		{
+			try 
+			{
+				Frame frame = CLIENT.read();
+			} 
+			catch (InvalidFrameException | WebSocketException e) 
+			{
+				// TODO Log this.
+				e.printStackTrace();
+			}
 			
 		}
 	}
 	
 	/**
-	 * 
+	 * Send string message to client.
 	 * @param message
 	 */
 	public void send(String message)
@@ -83,7 +93,7 @@ public class WebSocketSession implements Runnable, Closeable
 	}
 	
 	/**
-	 * 
+	 * Send an array of bytes to client.
 	 * @param data
 	 */
 	public void send(byte[] data)
@@ -94,22 +104,32 @@ public class WebSocketSession implements Runnable, Closeable
 		}
 		catch (InvalidFrameException | WebSocketException e)
 		{
-			// TODO Auto-generated catch block
+			// TODO Log this
 			e.printStackTrace();
 		}
 	}
 	
 	/**
-	 * 
+	 * Close the WebSocket connection to client and return
+	 * a closing frame with a status code.
 	 * @param status
 	 */
-	public void send(int status)
+	public void close(int status)
 	{
-		
+		try 
+		{
+			CLIENT.disconnect(status);
+		}
+		catch (WebSocketException e) 
+		{
+			// TODO Log this.
+			e.printStackTrace();
+		}
 	}
 
 	/**
-	 * Properly close the session and WebSocket 
+	 * Properly close the session and WebSocket.
+	 * This will also send a close frame with a normal status code. 
 	 * connection from client.
 	 */
 	@Override
