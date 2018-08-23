@@ -5,6 +5,6 @@ public class PingFrame extends ControlFrame
 	
 	PingFrame(byte[] data)
 	{
-		super(OpCode.PING, data);
+		super(OpCode.PING, data); 
 	}
 }
