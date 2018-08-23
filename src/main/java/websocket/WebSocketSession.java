@@ -4,9 +4,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 /**
- * TODO Review all try-catch's and determine how to properly handle them.
+ * WebSocketSession is the connection between the client and server endpoints.
  * 
  * @author Ryan Mayobre
  *
@@ -16,17 +17,17 @@ public class WebSocketSession implements Runnable, Closeable
 	/**
 	 * Websocket connection to client.
 	 */
-	private final WebSocket CLIENT;
+	private final WebSocket client;
 	
 	/**
 	 * Key provided from client's request.
 	 */
-	private final String KEY;
+	private final String key;
 	
 	/**
 	 * Callback interface for websocket.
 	 */
-	private final WebSocketListener LISTENER;
+	private final WebSocketListener listener;
 	
 	/**
 	 * 
@@ -37,40 +38,86 @@ public class WebSocketSession implements Runnable, Closeable
 	 */
 	public WebSocketSession(Socket client, String key, WebSocketListener listener) throws IOException 
 	{
-		this.CLIENT = new WebSocket(client);
-		this.KEY = key;
-		this.LISTENER = listener;
+		this.client = new WebSocket(client);
+		this.key = key;
+		this.listener = listener;
 	}
 
 	@Override
 	public void run() 
 	{
-		/*
-		 * Perform handshake...
-		 */
 		try 
 		{
-			CLIENT.performHandshake(KEY);
+			client.performHandshake(key);
+			
+			listener.WebSocketOpen(this);
+			
+			while(!client.isClosed())
+			{
+				try 
+				{ 
+					Frame frame = client.read();
+					switch(frame.getOpcode())
+					{
+						case TEXT:
+							try 
+							{
+								listener.WebSocketMessage(this, frame.getPayload().toString());
+							} 
+							catch (IOException e) 
+							{
+								listener.WebSocketError(this, e);
+							}
+							break;
+						case BINARY:
+							try 
+							{
+								listener.WebSocketBinaryMessage(this, frame.getPayload().toByteArray());
+							} 
+							catch (IOException e) 
+							{
+								listener.WebSocketError(this, e);
+							}
+							break;
+						case CLOSE:
+							try 
+							{
+								int size = frame.getSize();
+								if(size == 0)
+									listener.WebSocketClose(this, CloseFrame.NO_CODE);
+								else
+								{
+									int status = ByteBuffer.wrap(frame.getPayload().toByteArray()).getShort();
+									listener.WebSocketClose(this, status);	
+								}
+							} 
+							catch (IOException e) 
+							{
+								listener.WebSocketError(this, e);
+							}
+							break;
+							/*
+							 * Ping and pong are currently not implemented.
+							 */
+//						case PING:
+//							break;
+//						case PONG:
+//							break;
+						default:
+							listener.WebSocketError(this, new InvalidFrameException("Invalid OpCode found in frame - " + frame.getOpcode().getCode()));
+							break;
+					}
+					
+				} 
+				catch (InvalidFrameException | WebSocketException e) 
+				{
+					listener.WebSocketError(this, e);
+				}
+			}
 		} 
 		catch (WebSocketException e)
 		{
-			// TODO Log this.
-			LISTENER.onError(this, e);
-		}
-		
-		while(!CLIENT.isClosed())
-		{
-			try 
-			{ 
-				Frame frame = CLIENT.read();
-				
-			} 
-			catch (InvalidFrameException | WebSocketException e) 
-			{
-				// TODO Log this.
-				e.printStackTrace();
-			}
-			
+			listener.WebSocketError(this, e);
 		}
 	} 
 	
@@ -82,14 +129,13 @@ public class WebSocketSession implements Runnable, Closeable
 	{
 		try 
 		{
-			CLIENT.send(new TextFrame(message));
+			client.send(new TextFrame(message));
 		} 
 		catch (UnsupportedEncodingException 
 				| InvalidFrameException 
 				| WebSocketException e) 
 		{
-			// TODO Log this.
-			e.printStackTrace();
+			listener.WebSocketError(this, e);
 		}
 	}
 	
@@ -101,50 +147,45 @@ public class WebSocketSession implements Runnable, Closeable
 	{
 		try 
 		{
-			CLIENT.send(new BinaryFrame(data));
+			client.send(new BinaryFrame(data));
 		}
 		catch (InvalidFrameException | WebSocketException e)
 		{
-			// TODO Log this
-			e.printStackTrace();
+			listener.WebSocketError(this, e);
 		}
 	}
 	
 	/**
-	 * Close the WebSocket connection to client and return
-	 * a closing frame with a status code.
-	 * @param status
+	 * @throws IOException 
+	 * 
 	 */
-	public void close(int status)
+	public void close() throws IOException
 	{
 		try 
 		{
-			CLIENT.disconnect(status);
-		}
-		catch (WebSocketException e) 
-		{
-			// TODO Log this.
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * Properly close the session and WebSocket.
-	 * This will also send a close frame with a normal status code. 
-	 * connection from client.
-	 */
-	@Override
-	public void close() 
-	{
-		try
-		{
-			CLIENT.disconnect();
+			client.send(new CloseFrame());
+			client.close();
 		} 
-		catch (WebSocketException e) 
+		catch (InvalidFrameException | WebSocketException e) 
 		{
-			// TODO Log this.
-			e.printStackTrace();
+			listener.WebSocketError(this, e);
 		}
 	}
-
+	
+	/**
+	 * @throws IOException 
+	 * 
+	 */
+	public void close(int status) throws IOException
+	{
+		try 
+		{
+			client.send(new CloseFrame(status));
+			client.close();
+		}
+		catch (InvalidFrameException | WebSocketException e) 
+		{
+			listener.WebSocketError(this, e);
+		}
+	}
 }

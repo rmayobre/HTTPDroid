@@ -1,5 +1,6 @@
 package websocket;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -13,11 +14,72 @@ import java.util.Base64;
  * in the RFC 6455 guidelines. A WebSocket must be created
  * for each session created when a client connects to the 
  * server.
+ * 
+ * <p>
+ * If the session fails to perform a handshake between client and server,
+ * disconnection all connections and streams from both client and server.
+ * 
  * @author Ryan Mayobre
  *
  */
-public class WebSocket implements FrameData
+public class WebSocket implements Closeable
 {
+    /**
+     * Number of masking bytes provided from client.
+     * @see {@link FrameData}
+     */
+    final int MASK_BYTES = 0x4;
+    
+    /**
+     * Binary mask to remove all but the bits of octet 2.
+     * @see {@link FrameData}
+     */
+    final int MASK_HIGH_WORD_LOW_BYTE = 0x00ff0000;
+
+    /**
+     * Binary mask to remove all but the bits of octet 1.
+     * @see {@link FrameData}
+     */
+    final int MASK_LOW_WORD_HIGH_BYTE = 0x0000ff00;
+
+    /**
+     * Binary mask to remove all but the lowest 8 bits (octet 0).
+     * @see {@link FrameData}
+     */
+    final int MASK_LOW_WORD_LOW_BYTE = 0x000000ff;
+
+    /**
+     * Number of bits required to shift octet 1 into the lowest 8 bits.
+     * @see {@link FrameData}
+     */
+    final int OCTET_ONE = 8;
+    
+    /**
+     * Payload length indicating that the payload's true length is a
+     * yet-to-be-provided unsigned 16-bit integer.
+     * @see {@link FrameData}
+     */
+    private final int PAYLOAD_LENGTH_16 = 0x7E;
+    
+    /**
+     * Payload length indicating that the payload's true length is a
+     * yet-to-be-provided unsigned 64-bit integer (MSB = 0).
+     * @see {@link FrameData}
+     */
+    private final int PAYLOAD_LENGTH_64 = 0x7F;
+    
+    /**
+     * Binary number for the two byte frame.
+     * @see {@link FrameData}
+     */
+    private final int TWO_BYTE_FRAME = 0x2;
+    
+    /**
+     * Binary number for the eight byte frame.
+     * @see {@link FrameData}
+     */
+    private final int EIGHT_BYTE_FRAME = 0x8;
+    
 	/**
 	 * Required to create a magic string and shake hands with client.
 	 */
@@ -67,7 +129,8 @@ public class WebSocket implements FrameData
 	 * @param frame - You CANNOT send a {@link Frame} class in this method.
 	 * Valid classes to place in parameters: {@link TextFrame}, 
 	 * {@link BinaryFrame}, {@link CloseFrame}, {@link PongFrame}.
-	 * @throws InvalidFrameException Will be thrown if frame is a {@link PingFrame}.
+	 * 
+	 * @throws InvalidFrameException
 	 * @throws WebSocketException 
 	 * @throws IOException 
 	 * @see {@link #sendData(Frame)}
@@ -104,6 +167,7 @@ public class WebSocket implements FrameData
 	
 	/**
 	 * Sends a {@link DataFrame} to client.
+	 * 
 	 * @param frame - data frame to be sent to client.
 	 * @throws IOException Thrown by {@link OutputStream}
 	 */
@@ -134,6 +198,7 @@ public class WebSocket implements FrameData
 	
 	/**
 	 * Takes in a number (Long or short) and creates a byte array.
+	 * 
 	 * @param data - {@link Number}
 	 * @return byte array.
 	 */
@@ -185,6 +250,7 @@ public class WebSocket implements FrameData
 	
 	/**
 	 * Sends a {@link ControlFrame} to client.
+	 * 
 	 * @param frame {@link ControlFrame}
 	 * @throws InvalidFrameException Thrown if {@link PingFrame} because the server should never throw a ping to client.
 	 * @throws WebSocketException Thrown from {@link CloseFrame}.
@@ -200,18 +266,20 @@ public class WebSocket implements FrameData
 	}
 	
 	/**
-	 * TODO finish pong response.
+	 * TODO implement Ping and Pong responses.
+	 * 
 	 * Sends a pong response to client.
 	 * @param frame {@link PongFrame}
 	 */
-	@Deprecated
-	private void sendPong(PongFrame frame)
-	{
-		
-	}
+//	@Deprecated
+//	private void sendPong(PongFrame frame)
+//	{
+//		
+//	}
 	
 	/**
 	 * Sends a {@link CloseFrame} to client containing a status code.
+	 * 
 	 * @param frame - MUST be a {@link CloseFrame} for this function to work!
 	 * @throws WebSocketException Thrown by {@link OuputStream} because of an 
 	 * {@link IOException} if stream is closed or corrupted.
@@ -235,6 +303,7 @@ public class WebSocket implements FrameData
 	
 	/**
 	 * Reads incoming stream of data from {@link Socket} connection.
+	 * 
 	 * @return {@link Frame}
 	 * @throws InvalidFrameException Thrown from {@link #build(Frame)} or stream could not be read.
 	 * @throws WebSocketException Thrown if handshake was never established.
@@ -257,47 +326,45 @@ public class WebSocket implements FrameData
 	}
 	
 	/**
-	 * TODO change up to return an extension of Frame class.
-	 * Builds a {@link Frame} or a link of {@link Frame}s, depending on size of data being streamed.
-	 * @param current - {@link Frame} being built. Uses recursion to build extending {@link Frame}s if needed.
+	 * Builds a {@link Frame} or a link of {@link Frame}(s), depending on size of data being streamed.
+	 * 
+	 * @param frame - {@link Frame} being built. Uses recursion to build extending {@link Frame}(s) if needed.
 	 * @return {@link Frame}
 	 * @throws InvalidFrameException Is thrown if client's frame was not properly built.
 	 * @throws IOException Thrown if stream of data is broken or corrupted.
 	 */
-	private Frame build(Frame current) throws InvalidFrameException, IOException
-	{  
-		if(current.PAYLOAD_LENGTH == PAYLOAD_LENGTH_16)
+	private Frame build(Frame frame) throws InvalidFrameException, IOException
+	{
+		if(frame.PAYLOAD_LENGTH == PAYLOAD_LENGTH_16)
 		{
-			current.PAYLOAD_LENGTH = 0;
+			frame.PAYLOAD_LENGTH = 0;
 			byte[] payload = new byte[TWO_BYTE_FRAME];
 			IN.read(payload);
 			
 			for(int i = 0; i < payload.length; i++)
-				current.PAYLOAD_LENGTH = (current.PAYLOAD_LENGTH << 8) + (payload[i] & 0xFF);
+				frame.PAYLOAD_LENGTH = (frame.PAYLOAD_LENGTH << 8) + (payload[i] & 0xFF);
 		}
-		else if (current.PAYLOAD_LENGTH == PAYLOAD_LENGTH_64)
+		else if (frame.PAYLOAD_LENGTH == PAYLOAD_LENGTH_64)
 		{
-			current.PAYLOAD_LENGTH = 0;
+			frame.PAYLOAD_LENGTH = 0;
 			byte[] payload = new byte[EIGHT_BYTE_FRAME];
 			IN.read(payload);
 			
 			for(int i = 0; i < payload.length; i++)
-				current.PAYLOAD_LENGTH = (current.PAYLOAD_LENGTH << 8) + (payload[i] & 0xFF);
+				frame.PAYLOAD_LENGTH = (frame.PAYLOAD_LENGTH << 8) + (payload[i] & 0xFF);
 		}
 		
-		byte[] maskingKey = new byte[MASK_BYTES];
-		
-		if(current.getMask())
+		if(frame.isMasked())
+		{	
+			byte[] maskingKey = new byte[MASK_BYTES];
 			IN.read(maskingKey);
-		else
-			throw new InvalidFrameException("Client did not send a masked frame.");
-		
-		byte[] payload = new byte[current.PAYLOAD_LENGTH];
-		IN.read(payload);
-		
-		if(current.getMask())
-			for(int i = 0; i < current.PAYLOAD_LENGTH; i++)
-				current.getPayload().write((char)(payload[i] ^ maskingKey[(i % 4)]));
+			
+			byte[] payload = new byte[frame.PAYLOAD_LENGTH];
+			IN.read(payload);
+			
+			for(int i = 0; i < frame.PAYLOAD_LENGTH; i++)
+				frame.addToPayload((char)(payload[i] ^ maskingKey[(i % 4)]));
+		}
 		else
 			throw new InvalidFrameException("Client did not send a masked frame.");
 		
@@ -305,10 +372,10 @@ public class WebSocket implements FrameData
 		 * Determine if this frame is the final fragment of the message.
 		 * If FALSE, recursively call this function to get next frame.
 		 */
-		if(!current.getFIN())
-			current.NEXT = build(new Frame(IN.read(), IN.read()));
+		if(!frame.isFIN())
+			frame.addFrame(build(new Frame(IN.read(), IN.read())));
 		
-		return current;
+		return frame;
 	}
 	
 	/**
@@ -361,6 +428,7 @@ public class WebSocket implements FrameData
 	
 	/**
 	 * Determine if server performed WebSocket Handshake
+	 * 
 	 * @return TRUE if handshake was performed successfully, otherwise, FALSE.
 	 */
 	public boolean shookHands()
@@ -369,61 +437,23 @@ public class WebSocket implements FrameData
 	}
 	
 	/**
-	 * Normal disconnection from client. This sends the client a {@link CloseFrame}
-	 * containing a {@link CloseFrame#NORMAL} status code.
-	 * @throws WebSocketException Sent from {@link #sendClose(CloseFrame)}
-	 */
-	public void disconnect() throws WebSocketException
-	{
-		sendClose(new CloseFrame());
-		close();
-	}
-	
-	/**
-	 * Proper disconnection from client. This will send the client a {@link CloseFrame}
-	 * containing a status code.
-	 * 
-	 * @param status - Status code to be placed inside of {@link CloseFrame}
-	 * @throws IOException 
-	 * @throws WebSocketException 
-	 * @see {@link CloseFrame}
-	 * @see <a href="https://tools.ietf.org/html/rfc6455#section-1.4">RFC 6455, Section 1.4 (Closing Handshake)</a>
-	 */
-	public void disconnect(int status) throws WebSocketException
-	{
-		sendClose(new CloseFrame(status));
-		close();
-	}
-	
-	/**
-	 * <p> 
-	 * TO PERFORM A PROPER DISCONNECTION FROM CLIENT USE: 
-	 * <br>
-	 * {@link #disconnect()} or {@link #disconnect(int)} 
-	 * 
-	 * <p>
 	 * Closes {@link Socket} connection from client, as well as {@link InputStream}
 	 * and {@link OutputStream} of data from client.
+	 * @throws IOException 
 	 * 
 	 * @throws WebSocketException Could not properly close socket or streams from client connection.
 	 */
-    private final synchronized void close() throws WebSocketException
+    public void close() throws IOException
     {
-    	try
-    	{
-    		this.CLOSED = true;
-    		this.CLIENT.close();
-    		this.IN.close();
-    		this.OUT.close();
-    	}
-    	catch (IOException e)
-    	{
-    		throw new WebSocketException("Connection error", e);
-    	}
+    	this.CLOSED = true;
+		this.CLIENT.close();
+		this.IN.close();
+		this.OUT.close();
     }
     
     /**
      * Determine if WebSocket is closed.
+     * 
      * @return TRUE if WebSocket is closed, otherwise, FALSE.
      */
     public boolean isClosed()

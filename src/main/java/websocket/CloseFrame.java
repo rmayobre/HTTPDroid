@@ -50,7 +50,7 @@ public class CloseFrame extends ControlFrame
 	 * 
 	 * @see <a href="https://tools.ietf.org/html/rfc6455#section-7.4.1">RFC 6455, Section 7.4.1 (Defined Status Codes)</a>
 	 */
-	public static final int NOCODE = 1005;
+	public static final int NO_CODE = 1005;
 	
 	/**
 	 * 1006 is a reserved value and MUST NOT be set as a status code in a
@@ -145,16 +145,16 @@ public class CloseFrame extends ControlFrame
 	 * Status code of the close frame.
 	 * @see <a href="https://tools.ietf.org/html/rfc6455#section-7.4.1">RFC 6455, Section 7.4.1 (Defined Status Codes)</a>
 	 */
-	private final int STATUS;
+	private final int status;
 	
 	/**
 	 * Creating a CloseFrame with an empty parameter automatically sets
-	 * the {@link #STATUS} to {@link CloseFrame#NORMAL}.
+	 * the {@link #status} to {@link CloseFrame#NORMAL}.
 	 */
 	CloseFrame() 
 	{
 		super(OpCode.CLOSE, ByteBuffer.allocate(4).putInt(NORMAL).array());
-		STATUS = NORMAL;
+		this.status = NORMAL;
 	}
 	
 	/**
@@ -164,14 +164,14 @@ public class CloseFrame extends ControlFrame
 	CloseFrame(int status)
 	{
 		super(OpCode.CLOSE, ByteBuffer.allocate(4).putInt(status).array());
-		STATUS = status;
+		this.status = status;
 	}
 	
 	/**
-	 * @return {@link #STATUS}
+	 * @return {@link #status}
 	 */
 	public int getStatus()
 	{
-		return STATUS;
+		return status;
 	}
 }

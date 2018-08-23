@@ -256,4 +256,11 @@ public class Frame
 		NEXT = frame;
 	}
 	
+	public int getSize()
+	{
+		if(NEXT == null)
+			return PAYLOAD.size();
+		else
+			return PAYLOAD.size() + NEXT.getSize();
+	}
 }

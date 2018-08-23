@@ -1,14 +1,13 @@
 
 
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import http.BadRequestException;
 import http.Request;
 import websocket.WebSocketListener;
 import websocket.WebSocketSession;
@@ -18,17 +17,12 @@ import websocket.WebSocketSession;
  * @author Ryan Mayobre
  *
  */
-public class WebSocketServer implements Runnable, Closeable
-{
+public abstract class WebSocketServer implements Runnable, WebSocketListener
+{	
 	/**
 	 * 
 	 */
 	private final ServerSocket SERVER;
-	
-	/**
-	 * 
-	 */
-	private WebSocketListener WEBSOCKET_LISTENER;
 	
 	/**
 	 * 
@@ -38,17 +32,16 @@ public class WebSocketServer implements Runnable, Closeable
 	/**
 	 * 
 	 */
-	private OutputStream OUT;
+//	private OutputStream OUT;
 	
 	/**
-	 * Determine when server loop should end.
+	 * Determines if the server is listening to the network.
 	 */
-	private boolean CLOSED;
+	private boolean LISTENING;
 	
-	public WebSocketServer(ServerSocket server, WebSocketListener listener) 
+	public WebSocketServer(int port) throws IOException 
 	{
-		this.SERVER = server;
-		this.WEBSOCKET_LISTENER = listener;
+		SERVER = new ServerSocket(port);
 	}
 
 	/**
@@ -57,15 +50,15 @@ public class WebSocketServer implements Runnable, Closeable
 	@Override
 	public void run()
 	{
-		CLOSED = false;
+		LISTENING = true;
 		
-		while(!CLOSED)
+		while(LISTENING)
 		{
 			try 
 			{
 				Socket client = SERVER.accept();
 				IN = client.getInputStream();
-				OUT = client.getOutputStream();
+//				OUT = client.getOutputStream();
 				/*
 				 * Determine if connection is an upgrade
 				 * to WebSocket.
@@ -74,72 +67,64 @@ public class WebSocketServer implements Runnable, Closeable
 				
 				if(client_request.isWebSocketUpgrade())
 				{
-					WebSocketSession session = new WebSocketSession(client, client_request.getKey(), WEBSOCKET_LISTENER);
+					/*
+					 * TODO properly name threads based on sessions.
+					 */
+					WebSocketSession session = new WebSocketSession(client, client_request.getKey(), this);
 					Thread WebSocketThread = new Thread(session);
 //					WebSocketThread.setName(name);
 					WebSocketThread.start();
 				}
 				/*
-				 * TODO incorporate other types of requests here.
-				 * 
-				 * SYNTAX - client_request.<CHECKING METHOD>
+				 * TODO implement basic http request.
 				 */
 				else
 				{
-//					throws new BadRequestException("404 - Bad Request");
 					// TODO setup a proper status response to errors.
 					client.close();
-					IN.close();
-					OUT.close();
+					throw new BadRequestException("404 - Bad Request");
 				}
 			} 
-			catch (IOException e) 
+			catch (IOException | BadRequestException e) 
 			{
-				// TODO Log this catch
 				e.printStackTrace();
 			}
 		}
 	}
 	
-	/**
-	 * Properly close any data destinations.
-	 * 
-	 * @param closeable - A data destination using the {@link Closeable} interface.
-	 */
-	private void close(Object closeable)
+//	@Override
+//	public void WebSocketOpen(WebSocketSession session)
+//	{
+//		
+//	}
+//	
+//	@Override
+//	public void WebSocketMessage(WebSocketSession session, String message)
+//	{
+//		
+//	}
+//	
+//	@Override
+//	public void WebSocketBinaryMessage(WebSocketSession session, byte[] data)
+//	{
+//		
+//	}
+//	
+//	@Override
+//	public void WebSocketError(WebSocketSession session, Exception e)
+//	{
+//		
+//	}
+//	
+//	@Override
+//	public void WebSocketClose(WebSocketSession session, int status)
+//	{
+//		
+//	}
+	
+	public void shutdown()
 	{
-		try 
-		{
-            if (closeable != null) 
-            {
-                if (closeable instanceof Closeable) 
-                    ((Closeable) closeable).close();
-                else if (closeable instanceof Socket)
-                    ((Socket) closeable).close();
-                else if (closeable instanceof ServerSocket)
-                    ((ServerSocket) closeable).close(); 
-                else
-                    throw new IllegalArgumentException("Object is not closeable.");
-            }
-        }
-		catch (IOException e) 
-		{
-        	// TODO log this error.
-            e.printStackTrace();
-        }
-	}
-
-	/**
-	 * Disconnects all data destinations and ends server loop.
-	 * @throws IOException
-	 */
-	@Override
-	public void close() throws IOException 
-	{
-		CLOSED = true; // Marked true to end While-loop.
-		close(SERVER);
-		close(IN);
-		close(OUT);
+		LISTENING = false;
 	}
 
 }
