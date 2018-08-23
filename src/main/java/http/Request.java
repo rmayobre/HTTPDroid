@@ -56,10 +56,7 @@ public class Request
 	public Request(InputStream input) throws IOException
 	{
 		BufferedReader in = new BufferedReader(new InputStreamReader(input));
-//		String[] requestLine = input.readLine().split("\\s+");
-		String request = in.readLine();
-		System.out.println(request); // For testing
-		String[] requestLine = request.split("\\s+");
+		String[] requestLine = in.readLine().split("\\s+");
 		/*
 		 * Gather requests from request-line.
 		 */
@@ -72,7 +69,6 @@ public class Request
 		String header = in.readLine();
 		while(!header.isEmpty())
 		{
-			System.out.println(header); // For testing
 			String[] h = header.split(":\\s+", 2);
 			REQUEST_HEADER.put(h[0], h[1]);
 			header = in.readLine();

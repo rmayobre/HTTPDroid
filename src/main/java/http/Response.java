@@ -12,7 +12,10 @@ import java.util.Map;
  */
 public class Response
 {	
-	private static final String SERVER = "Server: HTTPDroid_0.1";
+	/**
+	 * TODO change this
+	 */
+	private final String server = "Server: HTTPDroid_0.1";
 	
 	private final Map<String, String> header = new HashMap<String, String>();
 	
@@ -44,7 +47,7 @@ public class Response
 		out.writeBytes("HTTP/1.1 " + status.getCode() + " OK\r\n");
 		out.writeBytes("Content-Type: " + type.getMime() + "\r\n");
 		out.writeBytes("Content-Length: " + dataSize + "\r\n"); 
-		out.writeBytes(SERVER);
+		out.writeBytes(server);
 		out.writeBytes("\r\n\r\n");
 	}
 	

@@ -1,7 +1,7 @@
 # HTTPDroid
 A lightweight HTTP daemon that runs WebSocket protocol. This library is designed to be used on Android devices as a server to handle incoming commands on a LAN connection, from a client that runs a WebSocket connection. This library will allow wireless communication for an Android device without the need of a third-party server handling sent data.
 
-# Current Status: *pre-alpha*
+# Current Status: *Alpha (0.0.1)*
 This project is not yet finished and major functions of this project are not yet properly implemented.
 
 # What is currently being worked on?

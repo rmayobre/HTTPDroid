@@ -29,6 +29,11 @@ public enum Content
 		this.extension = extension;
 	}
 	
+	public String getExtension()
+	{
+		return extension;
+	}
+	
 	public String getMime()
 	{
 		switch(this)
