@@ -5,7 +5,7 @@ A lightweight HTTP daemon that runs WebSocket protocol. This library is designed
 This project is not yet finished and major functions of this project are not yet properly implemented.
 
 # What is currently being worked on?
-Right now I am working on the WebSocket interface, and stablizing the overall library.
+Chrome extension is in development. Once the chrome extension is complete, I will be testing the overall stability of HTTPDroid.
 
 # Road Map
 ## Alpha
