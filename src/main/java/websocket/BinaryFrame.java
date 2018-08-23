@@ -8,10 +8,10 @@ package websocket;
 public class BinaryFrame extends DataFrame
 {
 	/**
-	 * 
+	 * Constructor for created a Binary frame.
 	 * @param data
 	 */
-	public BinaryFrame(byte[] data) 
+	BinaryFrame(byte[] data) 
 	{
 		super(OpCode.BINARY, data);
 	}

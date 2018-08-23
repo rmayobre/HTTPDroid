@@ -7,38 +7,33 @@ package websocket;
 public abstract class ControlFrame extends Frame
 {	
 	/**
-	 * Application data from {@link PingFrame} and {@link PongFrame}.
+	 * Max payload data size.
+	 * TODO check payload size.
 	 */
-	@Deprecated
+	@SuppressWarnings("unused")
+	private final int MAX_SIZE = 125;
+	
+	/**
+	 * Payload data from inside the frame.
+	 */
 	private byte[] DATA;
 	
 	/**
-	 * Constructor for {@link CloseFrame}.
-	 * @param opcode
-	 */
-	ControlFrame(OpCode opcode)
-	{
-		super(opcode);
-	}
-	
-	/**
-	 * Constuctor for {@link PingFrame} and {@link PongFame}.
+	 * Constructor for sending frames.
 	 * @param opcode
 	 * @param data
 	 */
-	@Deprecated
-	ControlFrame(OpCode opcode, byte[] data)
+	protected ControlFrame(OpCode opcode, byte[] data)
 	{
 		super(opcode);
-		this.DATA = data;
+		DATA = data;
 	}
-	
 	
 	/**
 	 * @return {@link #DATA}.
 	 */
 	public byte[] getData()
 	{
-		return this.DATA;
+		return DATA;
 	}
 }

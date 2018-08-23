@@ -1,5 +1,7 @@
 package websocket;
 
+import java.nio.ByteBuffer;
+
 /**
  * Class structor for a Close frame.
  * @author Ryan Mayobre
@@ -151,8 +153,8 @@ public class CloseFrame extends ControlFrame
 	 */
 	CloseFrame() 
 	{
-		super(OpCode.CLOSE);
-		this.STATUS = NORMAL;
+		super(OpCode.CLOSE, ByteBuffer.allocate(4).putInt(NORMAL).array());
+		STATUS = NORMAL;
 	}
 	
 	/**
@@ -161,8 +163,8 @@ public class CloseFrame extends ControlFrame
 	 */
 	CloseFrame(int status)
 	{
-		super(OpCode.CLOSE);
-		this.STATUS = status;
+		super(OpCode.CLOSE, ByteBuffer.allocate(4).putInt(status).array());
+		STATUS = status;
 	}
 	
 	/**

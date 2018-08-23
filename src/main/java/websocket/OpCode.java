@@ -64,8 +64,9 @@ public enum OpCode
 	 * Find the OpCode by byte.
 	 * @param code - OpCode in byte.
 	 * @return {@link OpCode}
+	 * @throws InvalidFrameException Thrown if OpCode was not recognized.
 	 */
-	public static OpCode find(byte code)
+	public static OpCode find(byte code) throws InvalidFrameException
 	{
 		if(code == CONTINUATION.CODE)
 			return CONTINUATION;
@@ -80,6 +81,6 @@ public enum OpCode
 		if(code == PONG.CODE)
 			return PONG;
 		else
-			return null;
+			throw new InvalidFrameException("Invalid OpCode found inside of frame - " + code);
 	}
 }

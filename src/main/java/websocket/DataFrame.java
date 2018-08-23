@@ -17,10 +17,10 @@ public abstract class DataFrame extends Frame
 	 * @param opcode - {@link OpCode}
 	 * @param data - message represented as byte array.
 	 */
-	public DataFrame(OpCode opcode, byte[] data) 
+	protected DataFrame(OpCode opcode, byte[] data) 
 	{
 		super(opcode);
-		this.DATA = data;
+		DATA = data;
 	}
 	
 	/**
@@ -28,6 +28,6 @@ public abstract class DataFrame extends Frame
 	 */
 	public byte[] getData()
 	{
-		return this.DATA;
+		return DATA;
 	}
 }

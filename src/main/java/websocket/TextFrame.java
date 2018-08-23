@@ -15,12 +15,12 @@ public class TextFrame extends DataFrame
 	private final String MESSAGE;
 	
 	/**
-	 * Default constructor.
+	 * Constructor for creating a frame.
 	 * @param message - message to be placed inside frame.
 	 * @throws UnsupportedEncodingException Thrown if message 
 	 * does not support UTF-8 encoding.
 	 */
-	public TextFrame(String message) throws UnsupportedEncodingException 
+	TextFrame(String message) throws UnsupportedEncodingException 
 	{
 		super(OpCode.TEXT, message.getBytes("UTF-8"));
 		this.MESSAGE = message;
