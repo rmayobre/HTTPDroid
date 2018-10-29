@@ -1,5 +1,7 @@
 package websocket;
 
+import frame.InvalidFrameException;
+
 /**
  * TODO javadoc for OpCode.
  * @author Ryan Mayobre

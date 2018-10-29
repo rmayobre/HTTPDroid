@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * TODO Remove terminal printouts.
+ * TODO finish Request javadocs.
  * 
  * @author Ryan Mayobre
  *
@@ -44,12 +44,12 @@ public class Request
 	private final String REQUEST_PATH;
 	
 	/**
-	 * TODO finish HEADER javadoc.
+	 * 
 	 */
 	private final Map<String, String> REQUEST_HEADER = new HashMap<String, String>();
 	
 	/**
-	 * TODO finish javadoc
+	 * 
 	 * @param input
 	 * @throws IOException
 	 */
@@ -76,7 +76,7 @@ public class Request
 	}
 	
 	/**
-	 * TODO finish javadoc
+	 * 
 	 * @return {@link Request#REQUEST_METHOD}
 	 */
 	public Method getMethod()
@@ -85,7 +85,7 @@ public class Request
 	}
 	
 	/**
-	 * TODO finish javadoc
+	 * 
 	 * @return {@link Request#REQUEST_URI}
 	 */
 	public String getURI()
@@ -94,7 +94,7 @@ public class Request
 	}
 	
 	/**
-	 * TODO finish javadoc
+	 * 
 	 * @return {@link Request#REQUEST_PATH}
 	 */
 	public String getPath()
@@ -103,7 +103,7 @@ public class Request
 	}
 	
 	/**
-	 * TODO finish getheader javadocs
+	 * 
 	 * @param header
 	 * @return
 	 */
@@ -113,14 +113,14 @@ public class Request
 	}
 	
 	/**
-	 * TODO finish javadoc
+	 * TODO check for HTTP version, must be version 1.1 or greater.
 	 * @return
 	 */
 	public boolean isWebSocketUpgrade()
 	{
 		if(getHeader("Upgrade").equals("websocket")
-				&& getHeader("Connection").equals("Upgrade")
-				&& getHeader("Sec-WebSocket-Version").equals("13"))
+		&& getHeader("Connection").equals("Upgrade")
+		&& getHeader("Sec-WebSocket-Version").equals("13"))
 			return true;
 		else
 			return false;

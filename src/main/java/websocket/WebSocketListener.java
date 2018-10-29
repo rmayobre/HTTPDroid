@@ -11,32 +11,32 @@ public interface WebSocketListener
 	 * Callback for when a client requests connection.
 	 * @param session
 	 */
-	void WebSocketOpen(WebSocketSession session);
+	void WebSocketOpen(Session session);
 	
 	/**
 	 * Callback when client sends messages to server.
 	 * @param data
 	 */
-	void WebSocketMessage(WebSocketSession session, String message);
+	void onMessage(Session session, String message);
 	
 	/**
-	 * 
+	 * Callback when
 	 * @param session
 	 * @param data
 	 */
-	void WebSocketBinaryMessage(WebSocketSession session, byte[] data);
+	void onMessage(Session session, byte[] data);
 	
 	/**
 	 * Callback when an error occurs with server or client.
 	 * @param session
 	 * @param ex
 	 */
-	void WebSocketError(WebSocketSession session, Exception e);
+	void onError(Session session, Exception e);
 	
 	/**
 	 * Callback for when client sends a close request.
 	 * @param session
 	 * @param status
 	 */
-	void WebSocketClose(WebSocketSession session, int status);
+	void onClose(Session session, int status);
 }
