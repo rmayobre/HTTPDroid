@@ -1,5 +1,5 @@
 # HTTPDroid
-A lightweight library for WebSocket support for Java SE, written completely in Java. It was original designed to work with Android in mind, but now can support other Java SE supported devices.
+A lightweight WebSocket library for Android platform in mind. The library supports HTTP requests, WebSocket support following RFC 6455, and support for both server and client-side.
 
 # Current Status: *Alpha (0.0.1)*
-This project is not yet finished and major functions of this project are not yet properly implemented. A complete re-make of the project is being developed and will be updated soon!
+This project is about to recieve a huge update (version 0.1.0) in the next three weeks (target date: 12/31/18). A road map of features will also be delivered to the project following its beta update (version 0.1.0).
