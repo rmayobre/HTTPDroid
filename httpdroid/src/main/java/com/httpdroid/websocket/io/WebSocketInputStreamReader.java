@@ -1,8 +1,7 @@
 package com.httpdroid.websocket.io;
 
 import com.httpdroid.websocket.Frame;
-import com.httpdroid.websocket.exception.WebSocketException;
-import com.httpdroid.websocket.exception.WebSocketIOException;
+import com.httpdroid.websocket.WebSocketException;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -49,17 +48,17 @@ public class WebSocketInputStreamReader implements Closeable
      */
 	private final InputStream in;
 	
-	WebSocketInputStreamReader(InputStream in) {
+	public WebSocketInputStreamReader(InputStream in) {
 		this.in = in;
 	}
 
     /**
      * General use of the WebSocketInputStreamReader. Requires frames to be masked in
-     * order to be read. WebSocketServer requires the frames to always be masked when
+     * order to be read. WebSocketServerImpl requires the frames to always be masked when
      * receiving from client, however, client WebSockets do not require masking from server.
      *
      * @return List of frame fragments.
-     * @throws WebSocketException Thrown because of IOExceptions or WebSocket protocols were broken.
+     * @throws WebSocketException Thrown because of IOExceptions or WebSocketIOTemp protocols were broken.
      * @see #read(boolean)
      */
 	public List<Frame> read() throws WebSocketException {
@@ -67,11 +66,11 @@ public class WebSocketInputStreamReader implements Closeable
     }
 
 	/**
-	 * Reads the WebSocket's input stream of data and produces a list of fragments.
+	 * Reads the WebSocketIOTemp's input stream of data and produces a list of fragments.
 	 * These fragments will add up to become one frame of data.
 	 *
-	 * @param requiresMask If the stream is being used for a WebSocketServer, masking is required.
-	 *                    For client-side WebSocket connections, frames sent to a client are not
+	 * @param requiresMask If the stream is being used for a WebSocketServerImpl, masking is required.
+	 *                    For client-side WebSocketIOTemp connections, frames sent to a client are not
 	 *                    required to be masked.
 	 * @return List of frame fragments. The data needs to be combined to be usable.
 	 * @throws WebSocketException when frames where not masked or input stream was corrupted.
@@ -86,7 +85,7 @@ public class WebSocketInputStreamReader implements Closeable
 			} while (!(fragments.get(fragments.size()).isFin())); // Do-while not final fragment.
 		} catch (IOException e) {
 			// TODO: give this exception a closing code.
-			throw new WebSocketIOException("Could not read from WebSocket's input stream.", e);
+			throw new WebSocketException.WebSocketIOException("Could not read from WebSocketIOTemp's input stream.", e);
 		}
 
 		return fragments;

@@ -1,13 +1,6 @@
-package http;
+package com.httpdroid.http;
 
-/**
- * Not sure if i will need this still...
- * 
- * @author Ryan Mayobre
- *
- */
-public enum Content
-{
+public enum Content {
 	/*
 	 * Text files
 	 */
@@ -24,20 +17,16 @@ public enum Content
 	
 	private final String extension;
 	
-	Content(String extension)
-	{
+	Content(String extension) {
 		this.extension = extension;
 	}
 	
-	public String getExtension()
-	{
+	public String getExtension() {
 		return extension;
 	}
 	
-	public String getMime()
-	{
-		switch(this)
-		{
+	public String getMime() {
+		switch(this) {
 			case HTML:
 				return "text/html";
 				

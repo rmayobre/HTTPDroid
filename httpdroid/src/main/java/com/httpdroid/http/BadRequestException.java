@@ -1,4 +1,4 @@
-package http;
+package com.httpdroid.http;
 
 public class BadRequestException extends Exception
 {

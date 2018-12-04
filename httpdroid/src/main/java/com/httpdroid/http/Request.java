@@ -1,4 +1,4 @@
-package http;
+package com.httpdroid.http;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,14 +7,7 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * TODO finish Request javadocs.
- * 
- * @author Ryan Mayobre
- *
- */
-public class Request
-{
+public class Request {
 	/**
 	 * Method token from client request.
 	 * 
@@ -42,19 +35,10 @@ public class Request
 	 * IF path DOES fall behind web root, then drop connection.
 	 */
 	private final String REQUEST_PATH;
-	
-	/**
-	 * 
-	 */
+
 	private final Map<String, String> REQUEST_HEADER = new HashMap<String, String>();
-	
-	/**
-	 * 
-	 * @param input
-	 * @throws IOException
-	 */
-	public Request(InputStream input) throws IOException
-	{
+
+	public Request(InputStream input) throws IOException {
 		BufferedReader in = new BufferedReader(new InputStreamReader(input));
 		String[] requestLine = in.readLine().split("\\s+");
 		/*
@@ -67,71 +51,40 @@ public class Request
 		 * Place request headers inside of HashMap.
 		 */
 		String header = in.readLine();
-		while(!header.isEmpty())
-		{
+		while(!header.isEmpty()) {
 			String[] h = header.split(":\\s+", 2);
 			REQUEST_HEADER.put(h[0], h[1]);
 			header = in.readLine();
 		}
 	}
-	
-	/**
-	 * 
-	 * @return {@link Request#REQUEST_METHOD}
-	 */
-	public Method getMethod()
-	{
+
+	public Method getMethod() {
 		return REQUEST_METHOD;
 	}
-	
-	/**
-	 * 
-	 * @return {@link Request#REQUEST_URI}
-	 */
-	public String getURI()
-	{
+
+	public String getURI() {
 		return REQUEST_URI;
 	}
-	
-	/**
-	 * 
-	 * @return {@link Request#REQUEST_PATH}
-	 */
-	public String getPath()
-	{
+
+	public String getPath() {
 		return REQUEST_PATH;
 	}
-	
-	/**
-	 * 
-	 * @param header
-	 * @return
-	 */
-	private String getHeader(String header)
-	{
+
+	private String getHeader(String header) {
 		return REQUEST_HEADER.get(header);
 	}
-	
-	/**
-	 * TODO check for HTTP version, must be version 1.1 or greater.
-	 * @return
-	 */
-	public boolean isWebSocketUpgrade()
-	{
+
+	public boolean isWebSocketUpgrade() {
 		if(getHeader("Upgrade").equals("websocket")
 		&& getHeader("Connection").equals("Upgrade")
-		&& getHeader("Sec-WebSocket-Version").equals("13"))
+		&& getHeader("Sec-WebSocketIOTemp-Version").equals("13")) {
 			return true;
-		else
+		} else {
 			return false;
+		}
 	}
-	
-	/**
-	 * TODO finish javadoc
-	 * @return
-	 */
-	public String getKey()
-	{
-		return getHeader("Sec-WebSocket-Key");
+
+	public String getKey() {
+		return getHeader("Sec-WebSocketIOTemp-Key");
 	}
 }

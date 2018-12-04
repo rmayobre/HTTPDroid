@@ -1,7 +1,6 @@
-package http;
+package com.httpdroid.http;
 
-public enum RequestType 
-{
+public enum RequestType {
 	WS,
 	WSS,
 	SSH,

@@ -1,177 +1,40 @@
 package com.httpdroid.websocket;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.net.Socket;
-import java.security.NoSuchAlgorithmException;
-
-import frame.BinaryFrame;
-import com.httpdroid.library.websocket.frame.CloseFrame;
-import frame.PingFrame;
-import frame.PongFrame;
-import com.httpdroid.library.websocket.frame.TextFrame;
-import com.httpdroid.websocket.exception.WebSocketException;
-import com.httpdroid.websocket.io.WebSocketInputStreamReader;
-import com.httpdroid.websocket.io.WebSocketOutputStreamReader;
-
 /**
- * This class creates the WebSocket protocols presented
- * in the RFC 6455 guidelines. A WebSocket must be created
- * for each session created when a client connects to the 
- * server.
- * 
- * <p>
- * If the session fails to perform a handshake between client and server,
- * disconnection all connections and streams from both client and server.
- * 
- * @author Ryan Mayobre
- *
+ * Provided interface for any kind of WebSocket type.
+ * @param <T> Any form on endpoint for the socket to connect to. (e.g {@link java.net.URL} or {@link java.net.URI})
  */
-public abstract class WebSocket implements Closeable
-{	
-	/**
-	 * 
-	 */
-	protected ReadyState readyState;
-	
-	/**
-	 * 
-	 */
-	protected Socket client;
-	
-	/**
-	 * 
-	 */
-	private WebSocketInputStreamReader in;
-	
-	/**
-	 * 
-	 */
-	private WebSocketOutputStreamReader out;
-	
-	/**
-	 * 
-	 * @param client
-	 * @throws IOException
-	 */
-	protected WebSocket(Socket client)
-	{
-		try
-		{
-			this.client = client;
-			in = new WebSocketInputStream(client.getInputStream());
-			out = new WebSocketOutputStream(client.getOutputStream());
-			readyState = ReadyState.CONNECTING;
-		}
-		catch (IOException e)
-		{
-			onError(new WebSocketException("WebSocket could not be initalized.", e));
-		}
-	}
-	
-	/**
-	 * Perform handshake with client connection.
-	 * 
-	 * @param key - The key given by client upon request.
-	 * @throws WebSocketException Thrown when handshake could not be performed.
-	 * @see <a href="https://tools.ietf.org/html/rfc6455#section-4.2.2">RFC 6455, Section 4.2.2 (Sending the Server's Opening Handshake)</a>
-	 */
-	public void open(final String key) throws WebSocketException
-	{
-		try 
-		{
-			out.openHandShake(key);
-			readyState = ReadyState.OPEN;
-		} 
-		catch (NoSuchAlgorithmException | IOException e) 
-		{
-			
-			onError(new WebSocketException("Could not perform opening handshake with client.", e));
-		}
-	}
-	
-	/**
-	 * 
-	 * @param frame
-	 * @throws IOException
-	 * @throws WebSocketException
-	 */
-	@SuppressWarnings("deprecation")
-	protected void send(final Frame frame) throws IOException, WebSocketException
-	{
-		if (!isClosed())
-		{
-			if (frame instanceof TextFrame)
-				out.write((TextFrame) frame);
-			else if (frame instanceof BinaryFrame)
-				out.write((BinaryFrame) frame);
-			else if (frame instanceof CloseFrame)
-				out.write((CloseFrame) frame);
-			else if (frame instanceof PingFrame)
-				out.ping((PingFrame) frame);
-			else if (frame instanceof PongFrame)
-				out.pong((PongFrame) frame);
-			else
-				onError(new WebSocketException("Unrecognized frame being "
-											 + "sent through WebSocket."));
-		}
-		else
-			onError(new WebSocketException("Could not send frame to client, "
-									   + "Websocket is in a closing state."));
-	}
-	
-	protected abstract void onOpen();
-	protected abstract void onMessage(String message);
-	protected abstract void onError(WebSocketException e);
-	protected abstract void onClose(int status);
-	
-	/**
-	 * Make sure to perform a closing handshake before closing.
-	 * @throws IOException 
-	 * @see {@link #close(int)}
-	 */
-	@Override
-	public synchronized void close() throws IOException
-	{
-		in.close();
-		out.close();
-		client.close();
-		readyState = ReadyState.CLOSED;
-	}
-	
-	/**
-	 * The proper way of closing the websocket is by providing
-	 * the reason for closing the socket connection.
-	 * @param status - reason for closing.
-	 * @throws WebSocketException 
-	 * @see {@link CloseFrame}
-	 */
-	public synchronized void close(final int status) throws WebSocketException
-	{
-		readyState = ReadyState.CLOSING;
-		try 
-		{
-			send(new CloseFrame(status));
-		} 
-		catch (IOException e)
-		{
-			onError(new WebSocketException("Could not send close frame to client.", e));
-		}
-	}
-	
-	public boolean isOpen()
-	{
-		return readyState == ReadyState.OPEN;
-	}
-	
-	public boolean isClosing()
-	{
-		return readyState == ReadyState.CLOSING;
-	}
-	
-	public boolean isClosed()
-	{
-		return readyState == ReadyState.CLOSED;
-	}
-}
+public interface WebSocket<T> {
+    /**
+     * Perform handshake with client connection. Once this method is called, the WebSocket is then
+     * in the {@link ReadyState#CONNECTING} state. Initialize WebSocket connection by providing an
+     * endpoint object with the hostname and port number of the endpoint. This should do nothing if
+     * the ReadyState is not {@link ReadyState#CLOSED}.
+     * @param endpoint form of connection to desired endpoint. (e.g. "127.0.0.1:80")
+     * @see <a href="https://tools.ietf.org/html/rfc6455#section-4.2.2">RFC 6455, Section 4.2.2 (Sending the Server's Opening Handshake)</a>
+     */
+    void open(T endpoint);
 
+    /**
+     * Send a text frame to endpoint.
+     * @param message text being sent to endpoint.
+     */
+    void send(String message);
+
+    /**
+     * Send a binary frame to endpoint.
+     * @param data Raw data to be sent to endpoint.
+     */
+    void send(byte[] data);
+
+    /**
+     * Send a close frame with no closing code provided.
+     */
+    void close();
+
+    /**
+     * Send a close frame with provided closing code.
+     * @param code closing code for frame.
+     */
+    void close(@WebSocketException.CloseCode int code);
+}

@@ -8,24 +8,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import android.util.Base64;
 
-import frame.BinaryFrame;
-import com.httpdroid.library.websocket.frame.CloseFrame;
-import frame.DataFrame;
-import frame.PingFrame;
-import frame.PongFrame;
-import com.httpdroid.library.websocket.frame.TextFrame;
 import com.httpdroid.websocket.Frame;
-import com.httpdroid.websocket.WebSocketOpCode;
-import com.httpdroid.websocket.exception.HandshakeException;
-import com.httpdroid.websocket.exception.InvalidFrameException;
-import com.httpdroid.websocket.exception.WebSocketException;
-import com.httpdroid.websocket.exception.WebSocketIOException;
+import com.httpdroid.websocket.OpCode;
+import com.httpdroid.websocket.WebSocketException;
 
-/**
- * 
- * @author Ryan Mayobre
- *
- */
 public class WebSocketOutputStreamReader implements Closeable
 {
 	/**
@@ -73,93 +59,97 @@ public class WebSocketOutputStreamReader implements Closeable
     private static final int OCTET_ONE = 8;
     
     /**
-     * WebSocket defined opcode for a Binary frame. Includes high bit (0x80)
+     * WebSocketIOTemp defined opcode for a Binary frame. Includes high bit (0x80)
      * to indicate that the frame is the final/complete frame.
      */
     private static final int OPCODE_BINARY = 0x82;
 
     /**
-     * WebSocket defined opcode for a Close frame. Includes high bit (0x80)
+     * WebSocketIOTemp defined opcode for a Close frame. Includes high bit (0x80)
      * to indicate that the frame is the final/complete frame.
      */
     private static final int OPCODE_CLOSE = 0x88;
 
     /**
-     * WebSocket defined opcode for a Pong frame. Includes high bit (0x80)
+     * WebSocketIOTemp defined opcode for a Pong frame. Includes high bit (0x80)
      * to indicate that the frame is the final/complete frame.
      */
     private static final int OPCODE_PONG = 0x8A;
 
     /**
-     * WebSocket defined opcode for a Text frame. Includes high bit (0x80)
+     * WebSocketIOTemp defined opcode for a Text frame. Includes high bit (0x80)
      * to indicate that the frame is the final/complete frame.
      */
     private static final int OPCODE_TEXT = 0x81;
     
 	/**
-	 * WebSocket output stream of data.
+	 * WebSocketIOTemp output stream of data.
 	 */
 	private final OutputStream out;
 
-	WebSocketOutputStreamReader(OutputStream out) {
+	public WebSocketOutputStreamReader(OutputStream out) {
 		this.out = out;
-	}
-	
-	public void openHandShake(String key) throws HandshakeException {
-		try {
-			out.write(("HTTP/1.1 101 Switching Protocols\r\n").getBytes());
-			out.write(("Upgrade: websocket\r\n").getBytes());
-			out.write(("Connection: Upgrade\r\n").getBytes());
-			out.write(("Sec-WebSocket-Accept: " + getAcceptKey(key)).getBytes());
-			out.write(("\r\n\r\n").getBytes());
-		} catch (IOException e) {
-			throw new HandshakeException("", e);
-		}
-	}
-	
-	/**
-	 * Generates acceptance key to be sent back to client when performing handshake.
-	 * 
-	 * @param key - The key given by client during request.
-	 * @return The acceptance key.
-	 * @throws HandshakeException Thrown when there is an error with the SHA-1 hash function result.
-	 * @see <a href="https://tools.ietf.org/html/rfc6455#section-4.2.2">RFC 6455, Section 4.2.2 (Sending the Server's Opening Handshake)</a>
-	 */
-	private String getAcceptKey(String key) throws HandshakeException {
-		try {
-			MessageDigest message = MessageDigest.getInstance("SHA-1");
-			String magic_string = key + MAGIC_KEY;
-			message.update(magic_string.getBytes(), 0, magic_string.length());
-			return Base64.encodeToString(message.digest(), Base64.DEFAULT);
-		} catch (NoSuchAlgorithmException e) {
-			throw new HandshakeException("Could not apply SHA-1 hashing function to key.", e);
-		}
 	}
 
     /**
+     * Perform handshake client endpoint.
+     * @param key The key sent from client side.
+     * @throws WebSocketException Thrown if handshake could not be complete.
+     */
+    public void writeHandshake(String key) throws WebSocketException {
+        try {
+            out.write(("HTTP/1.1 101 Switching Protocols\r\n").getBytes());
+            out.write(("Upgrade: websocket\r\n").getBytes());
+            out.write(("Connection: Upgrade\r\n").getBytes());
+            out.write(("Sec-WebSocketIOTemp-Accept: " + getAcceptKey(key)).getBytes());
+            out.write(("\r\n\r\n").getBytes());
+        } catch (IOException e) {
+            throw new WebSocketException.HandshakeException("Handshake could not be complete.", e);
+        }
+    }
+
+    /**
+     * Generates acceptance key to be sent back to client when performing handshake.
+     * @param key - The key given by client during request.
+     * @return The acceptance key.
+     * @throws WebSocketException Thrown when there is an error with the SHA-1 hash function result.
+     * @see <a href="https://tools.ietf.org/html/rfc6455#section-4.2.2">RFC 6455, Section 4.2.2 (Sending the Server's Opening Handshake)</a>
+     */
+    private String getAcceptKey(String key) throws WebSocketException {
+        try {
+            MessageDigest message = MessageDigest.getInstance("SHA-1");
+            String magic_string = key + MAGIC_KEY;
+            message.update(magic_string.getBytes(), 0, magic_string.length());
+            return Base64.encodeToString(message.digest(), Base64.DEFAULT);
+        } catch (NoSuchAlgorithmException e) {
+            throw new WebSocketException.HandshakeException("Could not apply SHA-1 hashing function to key.", e);
+        }
+    }
+
+    /**
      * Send a frame to another end point.
-     *
      * @param frame
      * @throws WebSocketException
      */
 	public void write(Frame frame) throws WebSocketException {
 	    try {
             switch (frame.getOpcode()) {
-                case WebSocketOpCode.OpCode.TEXT:
+                case OpCode.TEXT:
                     writeData(frame);
-                case WebSocketOpCode.OpCode.BINARY:
+                case OpCode.BINARY:
                     writeData(frame);
-                case WebSocketOpCode.OpCode.CLOSE:
+                case OpCode.CLOSE:
                     writeClose(frame);
-                case WebSocketOpCode.OpCode.PING:
-                    writePing(frame);
-                case WebSocketOpCode.OpCode.PONG:
-                    writePong(frame);
+                    // TODO implement Ping and Pong.
+//                case OpCode.PING:
+//                    writePing(frame);
+//                case OpCode.PONG:
+//                    writePong(frame);
                 default:
-                    throw new InvalidFrameException("Invalid WebSocketOpCode found inside of frame - " + frame.getOpcode());
+                    throw new WebSocketException.InvalidFrameException("Invalid WebSocketOpCode found inside of frame - " + frame.getOpcode());
             }
         } catch (IOException e) {
-	        throw new WebSocketIOException("Could not read from WebSocket's input stream.", e);
+	        throw new WebSocketException.WebSocketIOException("Could not read from WebSocketIOTemp's input stream.", e);
         }
 	}
 
@@ -186,57 +176,60 @@ public class WebSocketOutputStreamReader implements Closeable
     /**
      * Send a close frame without a closing code sent with it. To send a closing frame
      * with a status inside the payload, use {@link #write(Frame)} and pass a frame with
-     * closing frame opcode, as well as a {@link com.httpdroid.websocket.exception.WebSocketException.CloseCode}.
+     * closing frame opcode, as well as a {@link WebSocketException.CloseCode}.
      * @throws IOException
      * @see #write(Frame)
-     * @see com.httpdroid.websocket.WebSocketOpCode.OpCode
-     * @see com.httpdroid.websocket.exception.WebSocketException.CloseCode
+     * @see com.httpdroid.websocket.OpCode
+     * @see WebSocketException.CloseCode
      */
-    public void writeClose() throws WebSocketIOException {
+    public void writeClose() throws WebSocketException {
         try {
             out.write(new byte[] {
                     (byte) OPCODE_CLOSE, (byte) 0x00
             });
         } catch (IOException e) {
-            throw new WebSocketIOException("Output stream could not send closing frame.", e);
+            throw new WebSocketException.WebSocketIOException("Output stream could not send closing frame.", e);
         }
     }
 
-    private void writeClose(Frame frame) throws WebSocketIOException {
+    private void writeClose(Frame frame) throws WebSocketException {
         // Get closing status from frame's payload.
         // Convert payload from frame into byte array, then to integer.
 	    @WebSocketException.CloseCode int status
                 = ByteBuffer.wrap(frame.getPayload().toByteArray()).getInt();
         try {
             out.write(new byte[]{
-                    (byte) OPCODE_CLOSE, (byte) 0x02,
+                    (byte) OPCODE_CLOSE,
+                    (byte) 0x02,
                     (byte) ((status & MASK_LOW_WORD_HIGH_BYTE) >> OCTET_ONE),
                     (byte) (status& MASK_LOW_WORD_LOW_BYTE)
             });
         } catch (IOException e) {
-            throw new WebSocketIOException("Output stream could not send closing frame.", e);
+            throw new WebSocketException.WebSocketIOException("Output stream could not send closing frame.", e);
         }
     }
 
-    private void writePing(Frame frame) {
+//    // TODO finish.
+//    private void writePing(Frame frame) {
+//
+//    }
+//
+//    // TODO check logic.
+//    private void writePong(Frame frame) throws WebSocketException {
+//		try {
+//			out.write(new byte[] {
+//					 (byte) OPCODE_PONG,
+//					 (byte) (frame.getPayload().size())
+//			});
+//		} catch (IOException e) {
+//			throw new WebSocketException.WebSocketIOException("Output stream could not send back pong.", e);
+//		}
+//	}
 
-    }
-
-    private void writePong(Frame frame) throws WebSocketIOException {
-        try {
-            out.write(new byte[] {
-                    (byte) OPCODE_PONG,
-                    (byte) (frame.getPayload().size())
-            });
-        } catch (IOException e) {
-            throw new WebSocketIOException("Output stream could not send back pong.", e);
-        }
-    }
-	
 	/**
 	 * Create a byte array from a number.
-	 * 
-	 * @param data - {@link Number}
+	 *
+	 * @param data {@link Number}
 	 * @return byte array.
 	 */
 	private byte[] toByteArray(Number data) {
@@ -273,19 +266,6 @@ public class WebSocketOutputStreamReader implements Closeable
 		}
 
 		return byteArray;
-	}
-	
-	@Deprecated
-	public void ping(final PingFrame frame) {
-		
-	}
-	
-	@Deprecated
-	public void pong(final PongFrame frame) throws IOException {
-		out.write(new byte[] {
-			(byte) OPCODE_PONG, 
-			(byte) (frame.getSize())
-		});
 	}
 
 	/**

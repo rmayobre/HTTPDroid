@@ -1,11 +1,9 @@
 package com.httpdroid.websocket;
 
-import com.httpdroid.websocket.exception.InvalidFrameException;
-
 import java.io.ByteArrayOutputStream;
 
 /**
- * Class structure for a WebSocket frame.
+ * Class structure for a WebSocketIOTemp frame.
  * 
  * @author Ryan Mayobre
  * @see <a href="https://tools.ietf.org/html/rfc6455#section-5.2">RFC 6455, Section 5.2 (Base Framing Protocol)</a>
@@ -13,32 +11,32 @@ import java.io.ByteArrayOutputStream;
 public class Frame
 {
 	/**
-     * Binary mask to extract the masking flag bit of a WebSocket frame.
+     * Binary mask to extract the masking flag bit of a WebSocketIOTemp frame.
      */
     private static final int MASK = 0x80;
     
     /**
-     * Binary mask to extract the final fragment flag bit of a WebSocket frame.
+     * Binary mask to extract the final fragment flag bit of a WebSocketIOTemp frame.
      */
     private static final int MASK_FINAL = 0x80;
     
     /**
-	 * Binary mask to extract RSV1 bit of a WebSocket frame.
+	 * Binary mask to extract RSV1 bit of a WebSocketIOTemp frame.
 	 */
     private static final int MASK_RSV1 = 0x40;
     
     /**
-	 * Binary mask to extract RSV2 bit of a WebSocket frame.
+	 * Binary mask to extract RSV2 bit of a WebSocketIOTemp frame.
 	 */
     private static final int MASK_RSV2 = 0x20;
     
     /**
-	 * Binary mask to extract RSV3 bit of a WebSocket frame.
+	 * Binary mask to extract RSV3 bit of a WebSocketIOTemp frame.
 	 */
     private static final int MASK_RSV3 = 0x10;
     
 	/**
-     * Binary mask to extract the opcode bits of a WebSocket frame.
+     * Binary mask to extract the opcode bits of a WebSocketIOTemp frame.
      */
     private static final int MASK_OPCODE = 0x0F;
     
@@ -64,9 +62,9 @@ public class Frame
 	
 	/**
 	 * WebSocketOpCode of the frame.
-	 * @see WebSocketOpCode
+	 * @see OpCode
 	 */
-	@WebSocketOpCode.OpCode
+	@OpCode
 	private final int opcode;
 	
 	/**
@@ -85,14 +83,12 @@ public class Frame
 	private ByteArrayOutputStream payload;
 
 	/**
-	 * TODO put data into payload.
 	 * Constructor for server to create frame.
-	 *
 	 * @param opcode of the frame being created.
 	 * @param data for the frame to place inside of {@link Frame#payload}.
-	 * @see WebSocketOpCode
+	 * @see OpCode
 	 */
-	public Frame(@WebSocketOpCode.OpCode int opcode, byte[] data) {
+	public Frame(@OpCode int opcode, byte[] data) {
 		fin = true;
 		rsv1 = false;
 		rsv2 = false;
@@ -107,17 +103,43 @@ public class Frame
 	 * Constructor for reading a frame sent from client.
 	 * @param b0 - First byte from stream.
 	 * @param b1 - Second byte from stream.
-	 * @see WebSocketOpCode
+	 * @see OpCode
 	 */
-	public Frame(int b0, int b1) throws InvalidFrameException {
+	public Frame(int b0, int b1) throws WebSocketException {
 		fin = ((b0 & MASK_FINAL) != 0);
 		rsv1 = ((b0 & MASK_RSV1) != 0);
 		rsv2 = ((b0 & MASK_RSV2) != 0);
 		rsv3 = ((b0 & MASK_RSV3) != 0);
-		opcode = WebSocketOpCode.find((byte)(b0 & MASK_OPCODE));
+		opcode = find((byte)(b0 & MASK_OPCODE));
 		masked = ((b1 & MASK) != 0);
 		payload_length = b1 & 0x7F;
 		payload = new ByteArrayOutputStream();
+	}
+
+	/**
+	 * Find the WebSocketOpCode by byte.
+	 * @param code - WebSocketOpCode in byte.
+	 * @return {@link OpCode}
+	 * @throws WebSocketException Thrown if WebSocketOpCode was not recognized.
+	 */
+	@OpCode
+	private int find(byte code) throws WebSocketException {
+		switch (code) {
+			case OpCode.CONTINUATION:
+				return OpCode.CONTINUATION;
+			case OpCode.TEXT:
+				return OpCode.TEXT;
+			case OpCode.BINARY:
+				return OpCode.BINARY;
+			case OpCode.CLOSE:
+				return OpCode.CLOSE;
+			case OpCode.PING:
+				return OpCode.PING;
+			case OpCode.PONG:
+				return OpCode.PONG;
+			default:
+				throw new WebSocketException.InvalidFrameException ("Invalid WebSocketOpCode found inside of frame - " + code);
+		}
 	}
 
 	/**
@@ -130,7 +152,7 @@ public class Frame
 	/**
 	 * @return {@link #opcode}
 	 */
-	@WebSocketOpCode.OpCode
+	@OpCode
 	public int getOpcode() {
 		return opcode;
 	}
@@ -156,10 +178,5 @@ public class Frame
 	 */
 	public ByteArrayOutputStream getPayload() {
 		return payload;
-	}
-
-	public int getSize()
-	{
-		return payload.size();
 	}
 }
