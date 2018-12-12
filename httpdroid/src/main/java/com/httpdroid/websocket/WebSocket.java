@@ -4,7 +4,7 @@ package com.httpdroid.websocket;
  * Provided interface for any kind of WebSocket type.
  * @param <T> Any form on endpoint for the socket to connect to. (e.g {@link java.net.URL} or {@link java.net.URI})
  */
-public interface WebSocket<T> {
+public interface WebSocket<T> extends Runnable{
     /**
      * Perform handshake with client connection. Once this method is called, the WebSocket is then
      * in the {@link ReadyState#CONNECTING} state. Initialize WebSocket connection by providing an

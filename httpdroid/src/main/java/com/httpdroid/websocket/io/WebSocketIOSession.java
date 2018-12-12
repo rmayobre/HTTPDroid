@@ -1,29 +1,22 @@
 package com.httpdroid.websocket.io;
 
 import com.httpdroid.websocket.WebSocketEventListener;
-import com.httpdroid.websocket.WebSocketException;
 
 import java.net.Socket;
 
 /**
  * @see <a href="https://tools.ietf.org/html/rfc6455">RFC 6455 - The WebSocket Protocol</a>
  */
-public class WebSocketIOSession extends WebSocketIO {
+public class WebSocketIOSession implements Runnable{
 
-    private final Socket client;
+    private final WebSocketIO client;
 
-    public WebSocketIOSession(Socket client, WebSocketEventListener listener) {
-        super(client, listener);
-        this.client = client;
+    public WebSocketIOSession(WebSocketEventListener listener, Socket client, String key) {
+        this.client = new WebSocketIO(listener, client, key);
     }
 
-    public void performHandshake(String key) {
-        try {
-            getOutputStreamReader().writeHandshake(key);
-        } catch (WebSocketException e) {
-            close(e);
-        }
+    @Override
+    public void run() {
+
     }
-
-
 }

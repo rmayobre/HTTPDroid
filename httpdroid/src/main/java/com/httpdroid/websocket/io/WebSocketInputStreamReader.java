@@ -48,98 +48,81 @@ public class WebSocketInputStreamReader implements Closeable
      */
 	private final InputStream in;
 	
-	public WebSocketInputStreamReader(InputStream in) {
+	WebSocketInputStreamReader(InputStream in) {
 		this.in = in;
 	}
 
-    /**
-     * General use of the WebSocketInputStreamReader. Requires frames to be masked in
-     * order to be read. WebSocketServerImpl requires the frames to always be masked when
-     * receiving from client, however, client WebSockets do not require masking from server.
-     *
-     * @return List of frame fragments.
-     * @throws WebSocketException Thrown because of IOExceptions or WebSocketIOTemp protocols were broken.
-     * @see #read(boolean)
-     */
-	public List<Frame> read() throws WebSocketException {
-	    return read(true);
-    }
-
 	/**
-	 * Reads the WebSocketIOTemp's input stream of data and produces a list of fragments.
+	 * Reads the WebSocketIO's input stream of data and produces a list of fragments.
 	 * These fragments will add up to become one frame of data.
 	 *
 	 * @param requiresMask If the stream is being used for a WebSocketServerImpl, masking is required.
-	 *                    For client-side WebSocketIOTemp connections, frames sent to a client are not
+	 *                    For client-side WebSocketIO connections, frames sent to a client are not
 	 *                    required to be masked.
 	 * @return List of frame fragments. The data needs to be combined to be usable.
 	 * @throws WebSocketException when frames where not masked or input stream was corrupted.
 	 * @see <a href="https://tools.ietf.org/html/rfc6455#section-5.1">RFC 6455, Section 5.1 Overview</a>
 	 */
-	public List<Frame> read(boolean requiresMask) throws WebSocketException {
+	public Frame read(boolean requiresMask) throws WebSocketException {
 		List<Frame> fragments = new ArrayList<>();
-
 		try {
 			do {
 				fragments.add(build(in.read(), in.read(), requiresMask));
-			} while (!(fragments.get(fragments.size()).isFin())); // Do-while not final fragment.
+			} while (!(fragments.get(fragments.size()).isFin)); // Do-while not final fragment.
 		} catch (IOException e) {
 			// TODO: give this exception a closing code.
-			throw new WebSocketException.WebSocketIOException("Could not read from WebSocketIOTemp's input stream.", e);
+			throw WebSocketException.webSocketIOException("Could not read from WebSocketIOTemp's input stream.", e);
 		}
-
-		return fragments;
+		return new Frame(fragments);
 	}
 
 	private Frame build(int b0, int b1, boolean requiresMask) throws IOException, WebSocketException {
-		Frame frame = new Frame(b0, b1);
-		if(frame.payload_length == PAYLOAD_LENGTH_16) {
-			frame.payload_length = 0;
+		Frame fragment = new Frame(b0, b1);
+		if(fragment.payload_length == PAYLOAD_LENGTH_16) {
+			fragment.payload_length = 0;
 			byte[] payload = new byte[TWO_BYTE_FRAME];
 			in.read(payload);
 
-			for(int i = 0; i < payload.length; i++) {
-				frame.payload_length = (frame.payload_length << 8) + (payload[i] & 0xFF);
+			for (byte aPayload : payload) {
+				fragment.payload_length = (fragment.payload_length << 8) + (aPayload & 0xFF);
 			}
 		}
-		else if (frame.payload_length == PAYLOAD_LENGTH_64) {
-			frame.payload_length = 0;
+		else if (fragment.payload_length == PAYLOAD_LENGTH_64) {
+			fragment.payload_length = 0;
 			byte[] payload = new byte[EIGHT_BYTE_FRAME];
 			in.read(payload);
 
-			for(int i = 0; i < payload.length; i++) {
-				frame.payload_length = (frame.payload_length << 8) + (payload[i] & 0xFF);
+			for (byte aPayload : payload) {
+				fragment.payload_length = (fragment.payload_length << 8) + (aPayload & 0xFF);
 			}
 		}
-
 		// Check if mask is required.
 		if(requiresMask) {
-			// Check if frame is masked.
-			if(frame.isMasked()) {
-				// Unmask data and place inside of frame object.
+			// Check if fragment is masked.
+			if(fragment.isMasked) {
+				// Unmask data and place inside of fragment object.
 				byte[] maskingKey = new byte[MASK_BYTES];
 				in.read(maskingKey);
 
-				byte[] payload = new byte[frame.payload_length];
+				byte[] payload = new byte[fragment.payload_length];
 				in.read(payload);
 
-				for(int i = 0; i < frame.payload_length; i++) {
-					frame.addToPayload((char) (payload[i] ^ maskingKey[(i % 4)]));
+				for(int i = 0; i < fragment.payload_length; i++) {
+					fragment.payload.write((char) (payload[i] ^ maskingKey[(i % 4)]));
 				}
 			} else {
-				throw new WebSocketException("Client did not send a masked frame.", WebSocketException.CloseCode.PROTOCOL_ERROR);
+				throw new WebSocketException("Client did not send a masked fragment.", WebSocketException.CloseCode.PROTOCOL_ERROR);
 			}
 		} else {
-			// Place data into frame object.
-			byte[] payload = new byte[frame.payload_length];
+			// Place data into fragment object.
+			byte[] payload = new byte[fragment.payload_length];
 			in.read(payload);
 
-			for(int i = 0; i < frame.payload_length; i++) {
-				frame.addToPayload((char) (payload[i]));
+			for(int i = 0; i < fragment.payload_length; i++) {
+				fragment.payload.write((char) (payload[i]));
 			}
 		}
-
-		return frame;
+		return fragment;
 	}
 
 	@Override

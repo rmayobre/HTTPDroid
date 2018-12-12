@@ -28,8 +28,6 @@ public class WebSocketIO implements WebSocket<URL> {
 
     private Socket socket;
 
-    private URL endpoint;
-
     @ReadyState
     private int readyState;
 
@@ -38,20 +36,31 @@ public class WebSocketIO implements WebSocket<URL> {
         readyState = ReadyState.CLOSED;
     }
 
-    WebSocketIO(Socket socket, WebSocketEventListener listener) {
+    WebSocketIO(WebSocketEventListener listener, Socket socket, String key) {
+        readyState = ReadyState.CONNECTING;
         this.listener = listener;
         this.socket = socket;
         try {
             in = new WebSocketInputStreamReader(socket.getInputStream());
             out = new WebSocketOutputStreamReader(socket.getOutputStream());
+            out.writeHandshake(key);
+            readyState = ReadyState.OPEN;
         } catch (IOException e) {
-            close(new WebSocketException.WebSocketIOException(
+            readyState = ReadyState.CLOSED;
+            close(WebSocketException.webSocketIOException(
                     "Could not fetch input stream or use output stream of endpoint.", e));
+        } catch (WebSocketException e) {
+            readyState = ReadyState.CLOSED;
+            close(e);
         }
     }
 
-    //TODO set up thread start in the open method.
-
+    @Override
+    public void run() {
+        while(readyState == ReadyState.OPEN) {
+            // TODO check for handshake response.
+        }
+    }
 
     @Override
     public void open(URL endpoint) {
@@ -62,10 +71,9 @@ public class WebSocketIO implements WebSocket<URL> {
                 in = new WebSocketInputStreamReader(socket.getInputStream());
                 out = new WebSocketOutputStreamReader(socket.getOutputStream());
             } catch (IOException e) {
-                close(new WebSocketException.WebSocketIOException(
+                close(WebSocketException.webSocketIOException(
                         "Could not fetch input stream or use output stream of endpoint.", e));
             }
-            this.endpoint = endpoint;
         }
     }
 
@@ -102,7 +110,7 @@ public class WebSocketIO implements WebSocket<URL> {
         } catch (WebSocketException e) {
             listener.onError(e);
         } catch (IOException e) {
-            listener.onError(new WebSocketException.WebSocketIOException("Socket and in/out streams could not be close.", e));
+            listener.onError(WebSocketException.webSocketIOException("Socket and in/out streams could not be close.", e));
         }
     }
 
@@ -117,25 +125,18 @@ public class WebSocketIO implements WebSocket<URL> {
         } catch (WebSocketException e) {
             listener.onError(e);
         } catch (IOException e) {
-            listener.onError(new WebSocketException.WebSocketIOException("Socket and in/out streams could not be close.", e));
+            listener.onError(WebSocketException.webSocketIOException("Socket and in/out streams could not be close.", e));
         }
     }
 
-    protected void close(WebSocketException ex) {
+    private void close(WebSocketException ex) {
         readyState = ReadyState.CLOSING;
         listener.onError(ex);
         close(ex.getCode());
     }
 
-    WebSocketOutputStreamReader getOutputStreamReader() {
-        return out;
-    }
-
+    @ReadyState
     public int getReadyState() {
         return readyState;
-    }
-
-    public URL getEndpoint() {
-        return endpoint;
     }
 }

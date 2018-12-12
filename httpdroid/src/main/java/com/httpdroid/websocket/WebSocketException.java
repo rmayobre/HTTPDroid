@@ -141,56 +141,30 @@ public class WebSocketException extends Exception {
 	}
 
     /**
-     * Exception when a WebSocketIOTemp connection failed to perform TLS opening handshake.
-     *
+     * Exception when a WebSocket connection failed to perform TLS opening handshake.
      * @see <a href="https://tools.ietf.org/html/rfc6455#section-4">RFC 6455, Section 4 Opening Handshake</a>
      */
-    public static class HandshakeException extends WebSocketException {
-
-        private static final long serialVersionUID = 7834921797559816418L;
-
-        public HandshakeException(String message) {
-            super(message, CloseCode.TLS_ERROR);
-        }
-
-        public HandshakeException(String message, Exception e) {
-            super(message, e, CloseCode.TLS_ERROR);
-        }
+    public static WebSocketException handShakeException(String message, Exception ex) {
+        return new WebSocketException(message, ex, CloseCode.TLS_ERROR);
     }
 
     /**
      * Exception for any problems with building or using WebSocketIOTemp Data frames.
      * Must follow the <a href="https://tools.ietf.org/html/rfc6455">RFC 6455</a> guidelines.
-     *
      * @see <a href="https://tools.ietf.org/html/rfc6455">RFC 6455</a>
      */
-    public static class InvalidFrameException extends WebSocketException {
-
-        private static final long serialVersionUID = -6571826516080525468L;
-
-        public InvalidFrameException(String message) {
-            super(message, CloseCode.POLICY_VALIDATION);
-        }
-
-        public InvalidFrameException(String message, Exception e) {
-            super(message, e, CloseCode.POLICY_VALIDATION);
-        }
+    public static WebSocketException invalidFrameException(String message) {
+        return new WebSocketException(message, CloseCode.POLICY_VALIDATION);
     }
 
     /**
-     * Exception occurs when a user
+     * There was an IO related issue (e.g. Input and output streams weren't connected to an
+	 * endpoint or not initialized). Any internal errors with data streams require a closing
+     * socket sent with {@link CloseCode#INTERNAL_ERROR INTERNAL_ERROR} status.
+     * @see <a href="https://tools.ietf.org/html/rfc6455">RFC 6455</a>
      */
-    public static class WebSocketIOException extends WebSocketException {
-
-        private static final long serialVersionUID = 8789133978001569624L;
-
-        public WebSocketIOException(String message) {
-            super(message, CloseCode.INTERNAL_ERROR);
-        }
-
-        public WebSocketIOException(String message, Exception ex) {
-            super(message, ex, CloseCode.INTERNAL_ERROR);
-        }
+    public static WebSocketException webSocketIOException(String message, Exception ex) {
+        return new WebSocketException(message, ex, CloseCode.INTERNAL_ERROR);
     }
 
     /**
@@ -205,8 +179,7 @@ public class WebSocketException extends Exception {
 	 * @param code Closing reason.
 	 * @see CloseCode
 	 */
-	public WebSocketException(String message, @CloseCode int code)
-	{
+	public WebSocketException(String message, @CloseCode int code) {
 		super(message);
 		this.code = code;
 	}
@@ -218,8 +191,7 @@ public class WebSocketException extends Exception {
 	 * @param code Closing reason.
  	 * @see CloseCode
 	 */
-	public WebSocketException(String message, Exception e, @CloseCode int code)
-	{
+	public WebSocketException(String message, Exception e, @CloseCode int code) {
 		super(message, e);
 		this.code = code;
 	}

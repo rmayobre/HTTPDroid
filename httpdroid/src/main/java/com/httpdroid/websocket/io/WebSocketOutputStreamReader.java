@@ -87,7 +87,7 @@ public class WebSocketOutputStreamReader implements Closeable
 	 */
 	private final OutputStream out;
 
-	public WebSocketOutputStreamReader(OutputStream out) {
+	WebSocketOutputStreamReader(OutputStream out) {
 		this.out = out;
 	}
 
@@ -96,21 +96,21 @@ public class WebSocketOutputStreamReader implements Closeable
      * @param key The key sent from client side.
      * @throws WebSocketException Thrown if handshake could not be complete.
      */
-    public void writeHandshake(String key) throws WebSocketException {
+    void writeHandshake(String key) throws WebSocketException {
         try {
             out.write(("HTTP/1.1 101 Switching Protocols\r\n").getBytes());
             out.write(("Upgrade: websocket\r\n").getBytes());
             out.write(("Connection: Upgrade\r\n").getBytes());
-            out.write(("Sec-WebSocketIOTemp-Accept: " + getAcceptKey(key)).getBytes());
+            out.write(("Sec-WebSocket-Accept: " + getAcceptKey(key)).getBytes());
             out.write(("\r\n\r\n").getBytes());
         } catch (IOException e) {
-            throw new WebSocketException.HandshakeException("Handshake could not be complete.", e);
+            throw WebSocketException.handShakeException("Handshake could not be complete.", e);
         }
     }
 
     /**
      * Generates acceptance key to be sent back to client when performing handshake.
-     * @param key - The key given by client during request.
+     * @param key The key given by client during request.
      * @return The acceptance key.
      * @throws WebSocketException Thrown when there is an error with the SHA-1 hash function result.
      * @see <a href="https://tools.ietf.org/html/rfc6455#section-4.2.2">RFC 6455, Section 4.2.2 (Sending the Server's Opening Handshake)</a>
@@ -122,39 +122,48 @@ public class WebSocketOutputStreamReader implements Closeable
             message.update(magic_string.getBytes(), 0, magic_string.length());
             return Base64.encodeToString(message.digest(), Base64.DEFAULT);
         } catch (NoSuchAlgorithmException e) {
-            throw new WebSocketException.HandshakeException("Could not apply SHA-1 hashing function to key.", e);
+            throw WebSocketException.handShakeException(
+                    "Could not apply SHA-1 hashing function to key.", e);
         }
     }
 
     /**
-     * Send a frame to another end point.
-     * @param frame
-     * @throws WebSocketException
+     * Send a fragment to another end point.
+     * @param fragment
+     * @throws WebSocketException Thrown from an IOException.
      */
-	public void write(Frame frame) throws WebSocketException {
+    void write(Frame fragment) throws WebSocketException {
 	    try {
-            switch (frame.getOpcode()) {
+            switch (fragment.opcode) {
                 case OpCode.TEXT:
-                    writeData(frame);
+                    writeData(fragment);
+                    break;
                 case OpCode.BINARY:
-                    writeData(frame);
+                    writeData(fragment);
+                    break;
                 case OpCode.CLOSE:
-                    writeClose(frame);
-                    // TODO implement Ping and Pong.
-//                case OpCode.PING:
-//                    writePing(frame);
-//                case OpCode.PONG:
-//                    writePong(frame);
+                    writeClose(fragment);
+                    break;
+                case OpCode.PING: // TODO implement Ping.
+//                    writePing(fragment);
+                    break;
+                case OpCode.PONG: // TODO implement Pong.
+//                    writePong(fragment);
+                    break;
+                case OpCode.CONTINUATION:
+                    break;
                 default:
-                    throw new WebSocketException.InvalidFrameException("Invalid WebSocketOpCode found inside of frame - " + frame.getOpcode());
+                    throw WebSocketException.invalidFrameException(
+                            "Invalid OpCode found inside of fragment - " + fragment.opcode);
             }
         } catch (IOException e) {
-	        throw new WebSocketException.WebSocketIOException("Could not read from WebSocketIOTemp's input stream.", e);
+	        throw WebSocketException.webSocketIOException(
+	                "Could not read from WebSocket's input stream.", e);
         }
 	}
 
-    private void writeData(Frame frame) throws IOException {
-	    byte[] payload = frame.getPayload().toByteArray();
+    private void writeData(Frame fragment) throws IOException {
+	    byte[] payload = fragment.payload.toByteArray();
         if(payload.length <= LENGTH_16_MIN) {
             out.write(payload.length);
             out.write(payload);
@@ -173,30 +182,11 @@ public class WebSocketOutputStreamReader implements Closeable
         }
     }
 
-    /**
-     * Send a close frame without a closing code sent with it. To send a closing frame
-     * with a status inside the payload, use {@link #write(Frame)} and pass a frame with
-     * closing frame opcode, as well as a {@link WebSocketException.CloseCode}.
-     * @throws IOException
-     * @see #write(Frame)
-     * @see com.httpdroid.websocket.OpCode
-     * @see WebSocketException.CloseCode
-     */
-    public void writeClose() throws WebSocketException {
-        try {
-            out.write(new byte[] {
-                    (byte) OPCODE_CLOSE, (byte) 0x00
-            });
-        } catch (IOException e) {
-            throw new WebSocketException.WebSocketIOException("Output stream could not send closing frame.", e);
-        }
-    }
-
-    private void writeClose(Frame frame) throws WebSocketException {
-        // Get closing status from frame's payload.
-        // Convert payload from frame into byte array, then to integer.
+    private void writeClose(Frame fragment) throws WebSocketException {
+        // Get closing status from fragment's payload.
+        // Convert payload from fragment into byte array, then to integer.
 	    @WebSocketException.CloseCode int status
-                = ByteBuffer.wrap(frame.getPayload().toByteArray()).getInt();
+                = ByteBuffer.wrap(fragment.payload.toByteArray()).getInt();
         try {
             out.write(new byte[]{
                     (byte) OPCODE_CLOSE,
@@ -205,7 +195,8 @@ public class WebSocketOutputStreamReader implements Closeable
                     (byte) (status& MASK_LOW_WORD_LOW_BYTE)
             });
         } catch (IOException e) {
-            throw new WebSocketException.WebSocketIOException("Output stream could not send closing frame.", e);
+            throw WebSocketException.webSocketIOException(
+                    "Output stream could not send closing fragment.", e);
         }
     }
 
@@ -234,7 +225,6 @@ public class WebSocketOutputStreamReader implements Closeable
 	 */
 	private byte[] toByteArray(Number data) {
 		Class<? extends Number> dataType = data.getClass();
-		
 		long value;
 		int length;
 		if(Byte.class == dataType) {
@@ -258,22 +248,24 @@ public class WebSocketOutputStreamReader implements Closeable
 				}
 			}
 		}
-		
 		byte[] byteArray = new byte[length];
-		
 		for (int i = 0; i < length; i++) {
 			byteArray[i] = ((byte) (int) (value >> 8 * (length - i - 1) & 0xFF));
 		}
-
 		return byteArray;
 	}
 
 	/**
-	 * Must send a Closing frame before closing stream.
-	 * @see #writeClose(Frame)
+     * Send a close frame without a closing code sent with it. To send a closing frame
+     * with a status inside the payload, use {@link #write(Frame)} and pass a frame with
+     * closing frame opcode, as well as a {@link WebSocketException.CloseCode}.
+     * @throws IOException from output stream.
 	 */
 	@Override
 	public void close() throws IOException {
-		out.close();
+        out.write(new byte[] {
+                (byte) OPCODE_CLOSE, (byte) 0x00
+        });
+        out.close();
 	}
 }
